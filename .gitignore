@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# OS files
+Desktop.ini
+$RECYCLE.BIN/
+
+# Large binary files
+*.pptx
+*.ppt
+*.pdf
+*.mp4
+*.mp3
+*.zip
+*.rar
+*.7z
