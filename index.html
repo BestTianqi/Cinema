@@ -4,179 +4,1821 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SmartCinema 智能影院选座系统</title>
+
 <style>
-:root{--bg:#070a12;--panel:#111725;--panel2:#171f30;--line:#29344b;--text:#f5f7fb;--muted:#94a0b8;--cyan:#65e7ff;--blue:#6579ff;--green:#4f8f78;--yellow:#ffd43b;--red:#ff3048;--purple:#b84dff;--seat:#4f8f78;--radius:18px;font-size:16px}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#1a2440 0,#080b14 38%,#060810 100%);color:var(--text);font-family:Inter,"Microsoft YaHei",Arial,sans-serif;min-height:100vh}
-button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!important}
-.app{max-width:1500px;margin:auto;padding:20px}.topbar{display:flex;align-items:center;gap:24px;padding:8px 0 20px}
-.brand{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:800;letter-spacing:.3px}.brand-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),var(--blue));display:grid;place-items:center;color:#07101a;box-shadow:0 0 28px #65e7ff55}
-.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:2px;margin-top:2px}.nav{display:flex;gap:4px;margin-left:auto;background:#0c111d;padding:4px;border:1px solid var(--line);border-radius:14px}
-.nav button,.ghost{border:0;background:transparent;color:var(--muted);padding:9px 13px;border-radius:10px}.nav button.active,.nav button:hover,.ghost:hover{background:var(--panel2);color:white}
-.account{display:flex;align-items:center;gap:10px}.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--blue));display:grid;place-items:center;font-weight:800}
-.layout{display:grid;grid-template-columns:minmax(620px,1fr) 370px;gap:18px}.card{background:linear-gradient(145deg,#121927ee,#0e1420ee);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 16px 45px #0006}
-.cinema{padding:18px;min-height:720px}.cinema-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.eyebrow{font-size:11px;color:var(--cyan);letter-spacing:2px;text-transform:uppercase}.cinema h1{font-size:25px;margin:5px 0 4px}.sub{color:var(--muted);font-size:13px}
-.hall-tabs{display:flex;background:#090e18;border:1px solid var(--line);padding:4px;border-radius:12px}.hall-tabs button{border:0;background:transparent;color:var(--muted);padding:8px 11px;border-radius:9px}.hall-tabs button.active{background:var(--blue);color:white}
-.screen{height:48px;width:76%;margin:25px auto 8px;position:relative;text-align:center;color:#8995ad;font-size:11px;letter-spacing:4px}.screen:before{content:"";position:absolute;left:0;right:0;top:20px;height:12px;border-radius:50% 50% 0 0;background:linear-gradient(180deg,#dce7ff,#62708e);box-shadow:0 8px 28px #a9c8ff66;transform:perspective(130px) rotateX(-28deg)}.screen span{position:relative}
-.canvas-wrap{position:relative;width:100%;height:540px;border-radius:14px;background:radial-gradient(ellipse at 50% 18%,#17233a 0,#090e18 68%);overflow:hidden;border:1px solid #202a3d}
-#seatCanvas{display:block;width:100%;height:100%;touch-action:none}.canvas-tip{position:absolute;left:12px;bottom:10px;color:#71809b;font-size:11px;pointer-events:none}
-.legend{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;padding-top:13px;color:var(--muted);font-size:12px}.dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px}.tools{display:flex;gap:8px;margin-top:14px}.tools button{flex:1;background:#111a2a;border:1px solid var(--line);color:#b6c2d8;padding:10px;border-radius:11px}.tools button.active{color:#07101a;background:var(--cyan);border-color:var(--cyan)}
-.side{display:flex;flex-direction:column;gap:14px}.flow{padding:18px}.steps{display:flex;gap:6px;margin-bottom:18px}.step{flex:1;height:4px;border-radius:9px;background:#2b3447}.step.done{background:linear-gradient(90deg,var(--cyan),var(--blue))}
-.flow h2,.mini h2{font-size:17px;margin:0 0 5px}.section-label{margin:16px 0 8px;font-size:12px;color:#aab4c8}.choices{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.choice{background:#0c121e;color:#b8c3d7;border:1px solid var(--line);padding:10px;border-radius:11px;text-align:left}.choice.active{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset;color:white;background:#102033}.choice b{display:block;font-size:13px}.choice small{font-size:10px;color:var(--muted)}
-.field{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field input,.field select,.full-input{width:100%;background:#090e18;border:1px solid var(--line);color:white;border-radius:10px;padding:10px;outline:none}.field input:focus,.field select:focus,.full-input:focus{border-color:var(--cyan)}
-.members{max-height:110px;overflow:auto;margin-top:8px}.member-row{display:grid;grid-template-columns:1fr 70px 28px;gap:6px;margin-bottom:6px}.member-row button{border:0;border-radius:8px;background:#2a1821;color:#ff8b94}
-.primary{width:100%;border:0;border-radius:12px;padding:12px;background:linear-gradient(90deg,var(--cyan),#6f8cff);color:#07101a;font-weight:800;margin-top:15px;box-shadow:0 8px 25px #65e7ff22}.primary:disabled{opacity:.4;cursor:not-allowed}
-.recommend{background:#0a111d;border:1px solid #274759;border-radius:12px;padding:12px;margin-top:12px}.recommend b{color:var(--cyan)}.recommend p{margin:6px 0 0;color:#9aabc3;font-size:12px;line-height:1.6}
-.score-row{display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:center;margin-top:14px}.score-ring{width:70px;height:70px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--cyan) var(--pct,0%),#242e40 0);position:relative}.score-ring:after{content:"";position:absolute;inset:7px;background:#111725;border-radius:50%}.score-ring strong{z-index:1;font-size:19px}.score-detail{font-size:11px;color:var(--muted);line-height:1.7}.mini{padding:16px}.order-total{display:flex;justify-content:space-between;align-items:end}.price{font-size:27px;font-weight:800}.price small{font-size:12px;color:var(--muted);font-weight:400}.selected-list{color:#aab5c9;font-size:12px;min-height:20px;margin:9px 0}
-.view{display:none}.view.active{display:block}.wide{padding:22px}.wide-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.stat{padding:18px}.stat strong{font-size:28px;display:block}.stat span{color:var(--muted);font-size:12px}
-.orders{display:grid;gap:9px}.order{display:grid;grid-template-columns:1.2fr .9fr .8fr .6fr auto;gap:12px;align-items:center;padding:14px;background:#0b111c;border:1px solid var(--line);border-radius:12px}.pill{font-size:11px;padding:5px 8px;border-radius:20px;background:#1a2e29;color:#66e4aa;width:max-content}.order button{border:1px solid #55303a;background:#24151b;color:#ff9ea5;padding:7px 10px;border-radius:9px}
-.heat-layout{display:grid;grid-template-columns:1fr 300px;gap:16px}.heat-canvas{width:100%;height:560px;background:#09101b;border-radius:14px;border:1px solid var(--line)}.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.week button{background:#0b111c;border:1px solid var(--line);color:#9ba7bc;padding:8px 2px;border-radius:8px}.week button.active{background:var(--blue);color:white}
-.admin-table{width:100%;border-collapse:collapse}.admin-table th,.admin-table td{text-align:left;padding:12px;border-bottom:1px solid var(--line);font-size:13px}.admin-table th{color:var(--muted)}
-.access{position:fixed;right:16px;bottom:16px;z-index:20}.access-btn{height:46px;padding:0 17px;border-radius:23px;border:2px solid #fff8;background:var(--cyan);color:#051017;font-size:14px;font-weight:800;box-shadow:0 8px 25px #000a;display:flex;align-items:center;gap:7px}.access-btn .access-icon{font-size:20px}.access-panel{position:absolute;right:0;bottom:56px;width:270px;padding:16px;border:1px solid var(--cyan);box-shadow:0 14px 38px #000c}.access-panel>b{display:block;font-size:16px;margin-bottom:4px}.access-panel .sub{margin-bottom:12px}.toggle{display:flex;justify-content:space-between;align-items:center;margin:0;padding:11px 0;border-top:1px solid var(--line);font-size:14px;font-weight:650}.toggle input{width:18px;height:18px;accent-color:var(--cyan)}
-.modal{position:fixed;inset:0;background:#02050bd9;display:grid;place-items:center;z-index:20;backdrop-filter:blur(12px)}.modal-card{width:min(430px,calc(100% - 32px));padding:26px}.modal-card h2{margin:7px 0}.modal-tabs{display:flex;gap:5px;margin:18px 0}.modal-tabs button{flex:1;border:0;border-bottom:2px solid var(--line);background:transparent;color:var(--muted);padding:9px}.modal-tabs button.active{color:var(--cyan);border-color:var(--cyan)}.modal-card label{display:block;color:#9ca8bd;font-size:12px;margin:11px 0 5px}.hint{font-size:11px;color:#718099;margin-top:12px}.error{color:#ff858c;font-size:12px;min-height:18px;margin-top:8px}
-.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,100px);opacity:0;background:#eef4ff;color:#111827;border-radius:12px;padding:11px 18px;z-index:50;transition:.25s}.toast.show{transform:translate(-50%,0);opacity:1}
-body.large-text{--scale:1.18;font-size:19px}body.high-contrast{--bg:#000;--panel:#000;--panel2:#111;--line:#fff;--text:#fff;--muted:#ddd;--cyan:#00ffff;--blue:#ffff00;background:#000}body.colorblind{--green:#3b82f6;--yellow:#f59e0b;--red:#d946ef;--seat:#3b82f6}
-@media(max-width:1050px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.flow{grid-row:span 2}.canvas-wrap{height:540px}}
-@media(max-width:700px){.app{padding:12px}.topbar{flex-wrap:wrap}.nav{order:3;width:100%;overflow:auto}.nav button{white-space:nowrap}.layout{display:block}.cinema{padding:12px;min-height:auto}.cinema-head{display:block}.hall-tabs{margin-top:12px;width:max-content}.canvas-wrap{height:500px}.side{display:block}.side>.card{margin-top:12px}.choices{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:1fr}.heat-layout{grid-template-columns:1fr}.heat-canvas{height:430px}.order{grid-template-columns:1fr 1fr}.order>*:first-child{grid-column:span 2}.wide{padding:14px}}
+/* ============================================================
+   CSS 设计系统 — 深色科技风，参考 Apple / Tesla / OpenAI
+   ============================================================ */
+
+/* ---- 变量 ----
+   bg:     主背景深蓝黑
+   panel:  面板玻璃态底色
+   line:   分割线
+   text:   主文字
+   muted:  次要文字
+   cyan:   电光青（强调色）
+   blue:   电光蓝（动作色）
+   green / yellow / red / purple: 座位状态色
+   seat:   默认空座色
+*/
+:root {
+  --bg:       #070a12;
+  --panel:    #111725;
+  --panel2:   #171f30;
+  --line:     #29344b;
+  --text:     #f5f7fb;
+  --muted:    #94a0b8;
+  --cyan:     #65e7ff;
+  --blue:     #6579ff;
+  --green:    #32d583;
+  --yellow:   #fdbf47;
+  --red:      #f35f67;
+  --purple:   #a77dff;
+  --seat:     #32d583;
+  --radius:   18px;
+  font-size: 16px;
+}
+
+/* ---- Reset & Base ---- */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 50% -10%, #1a2440 0, #080b14 38%, #060810 100%);
+  color: var(--text);
+  font-family: Inter, "Microsoft YaHei", Arial, sans-serif;
+  min-height: 100vh;
+}
+
+button, input, select { font: inherit; }
+
+button { cursor: pointer; }
+
+.hidden { display: none !important; }
+
+
+/* ---- Layout: 应用壳 + 顶栏 ---- */
+.app {
+  max-width: 1500px;
+  margin: auto;
+  padding: 20px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 8px 0 20px;
+}
+
+/* 品牌标识 */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: .3px;
+}
+.brand-mark {
+  width: 38px; height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  display: grid;
+  place-items: center;
+  color: #07101a;
+  box-shadow: 0 0 28px #65e7ff55;
+}
+.brand small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-top: 2px;
+}
+
+/* 导航 */
+.nav {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  background: #0c111d;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.nav button, .ghost {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 9px 13px;
+  border-radius: 10px;
+}
+.nav button.active,
+.nav button:hover,
+.ghost:hover {
+  background: var(--panel2);
+  color: white;
+}
+
+/* 账户区 */
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+
+/* ---- 主布局：影院图 + 侧栏 ---- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(620px, 1fr) 370px;
+  gap: 18px;
+}
+
+/* 通用卡片 */
+.card {
+  background: linear-gradient(145deg, #121927ee, #0e1420ee);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 45px #0006;
+}
+
+
+/* ---- 左侧：影院 Canvas 区 ---- */
+.cinema {
+  padding: 18px;
+  min-height: 720px;
+}
+.cinema-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.eyebrow {
+  font-size: 11px;
+  color: var(--cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.cinema h1 { font-size: 25px; margin: 5px 0 4px; }
+.sub { color: var(--muted); font-size: 13px; }
+
+/* 影厅标签页 */
+.hall-tabs {
+  display: flex;
+  background: #090e18;
+  border: 1px solid var(--line);
+  padding: 4px;
+  border-radius: 12px;
+}
+.hall-tabs button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 11px;
+  border-radius: 9px;
+}
+.hall-tabs button.active { background: var(--blue); color: white; }
+
+/* 银幕区域 */
+.screen {
+  height: 48px;
+  width: 76%;
+  margin: 25px auto 8px;
+  position: relative;
+  text-align: center;
+  color: #8995ad;
+  font-size: 11px;
+  letter-spacing: 4px;
+}
+/* 银幕弧形发光条 */
+.screen:before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 20px;
+  height: 12px;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, #dce7ff, #62708e);
+  box-shadow: 0 8px 28px #a9c8ff66;
+  transform: perspective(130px) rotateX(-28deg);
+}
+.screen span { position: relative; }
+
+/* Canvas 容器 */
+.canvas-wrap {
+  position: relative;
+  width: 100%; height: 520px;
+  border-radius: 14px;
+  background: radial-gradient(ellipse at center, #141e32 0, #090e18 70%);
+  overflow: hidden;
+  border: 1px solid #202a3d;
+}
+#seatCanvas {
+  display: block;
+  width: 100%; height: 100%;
+  touch-action: none;
+}
+.canvas-tip {
+  position: absolute;
+  left: 12px; bottom: 10px;
+  color: #71809b;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+/* 图例 */
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-top: 13px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+
+/* 工具栏 */
+.tools { display: flex; gap: 8px; margin-top: 14px; }
+.tools button {
+  flex: 1;
+  background: #111a2a;
+  border: 1px solid var(--line);
+  color: #b6c2d8;
+  padding: 10px;
+  border-radius: 11px;
+}
+.tools button.active {
+  color: #07101a;
+  background: var(--cyan);
+  border-color: var(--cyan);
+}
+
+
+/* ---- 右侧：推荐流程侧栏 ---- */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.flow { padding: 18px; }
+
+/* 三步进度条 */
+.steps { display: flex; gap: 6px; margin-bottom: 18px; }
+.step {
+  flex: 1;
+  height: 4px;
+  border-radius: 9px;
+  background: #2b3447;
+}
+.step.done {
+  background: linear-gradient(90deg, var(--cyan), var(--blue));
+}
+
+.flow h2, .mini h2 { font-size: 17px; margin: 0 0 5px; }
+
+.section-label {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  color: #aab4c8;
+}
+
+/* 票型选择按钮 */
+.choices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.choice {
+  background: #0c121e;
+  color: #b8c3d7;
+  border: 1px solid var(--line);
+  padding: 10px;
+  border-radius: 11px;
+  text-align: left;
+}
+.choice.active {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan) inset;
+  color: white;
+  background: #102033;
+}
+.choice b { display: block; font-size: 13px; }
+.choice small { font-size: 10px; color: var(--muted); }
+
+/* 表单控件 */
+.field {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.field input, .field select, .full-input {
+  width: 100%;
+  background: #090e18;
+  border: 1px solid var(--line);
+  color: white;
+  border-radius: 10px;
+  padding: 10px;
+  outline: none;
+}
+.field input:focus, .field select:focus, .full-input:focus {
+  border-color: var(--cyan);
+}
+
+/* 团体成员列表 */
+.members { max-height: 110px; overflow: auto; margin-top: 8px; }
+.member-row {
+  display: grid;
+  grid-template-columns: 1fr 70px 28px;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.member-row button {
+  border: 0;
+  border-radius: 8px;
+  background: #2a1821;
+  color: #ff8b94;
+}
+
+/* 主操作按钮 */
+.primary {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px;
+  background: linear-gradient(90deg, var(--cyan), #6f8cff);
+  color: #07101a;
+  font-weight: 800;
+  margin-top: 15px;
+  box-shadow: 0 8px 25px #65e7ff22;
+}
+.primary:disabled { opacity: .4; cursor: not-allowed; }
+
+/* 推荐结果卡片 */
+.recommend {
+  background: #0a111d;
+  border: 1px solid #274759;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 12px;
+}
+.recommend b { color: var(--cyan); }
+.recommend p {
+  margin: 6px 0 0;
+  color: #9aabc3;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 评分区域 */
+.score-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+/* 环形评分图 — 通过 --pct 控制 conic-gradient 进度 */
+.score-ring {
+  width: 70px; height: 70px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--cyan) var(--pct, 0%), #242e40 0);
+  position: relative;
+}
+.score-ring:after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  background: #111725;
+  border-radius: 50%;
+}
+.score-ring strong {
+  z-index: 1;
+  font-size: 19px;
+}
+.score-detail {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* 迷你卡片 */
+.mini { padding: 16px; }
+
+/* 订单价格 */
+.order-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+}
+.price { font-size: 27px; font-weight: 800; }
+.price small { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+.selected-list {
+  color: #aab5c9;
+  font-size: 12px;
+  min-height: 20px;
+  margin: 9px 0;
+}
+
+
+/* ---- 视图切换 ---- */
+.view { display: none; }
+.view.active { display: block; }
+
+
+/* ---- 全宽页面（热度地图 / 订单 / 管理后台） ---- */
+.wide { padding: 22px; }
+.wide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+/* 统计卡片 */
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.stat { padding: 18px; }
+.stat strong { font-size: 28px; display: block; }
+.stat span { color: var(--muted); font-size: 12px; }
+
+/* 订单列表 */
+.orders { display: grid; gap: 9px; }
+.order {
+  display: grid;
+  grid-template-columns: 1.2fr .9fr .8fr .6fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  background: #0b111c;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.pill {
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 20px;
+  background: #1a2e29;
+  color: #66e4aa;
+  width: max-content;
+}
+.order button {
+  border: 1px solid #55303a;
+  background: #24151b;
+  color: #ff9ea5;
+  padding: 7px 10px;
+  border-radius: 9px;
+}
+
+/* 热度地图布局 */
+.heat-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+}
+.heat-canvas {
+  width: 100%; height: 560px;
+  background: #09101b;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+/* 日期选择 */
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.week button {
+  background: #0b111c;
+  border: 1px solid var(--line);
+  color: #9ba7bc;
+  padding: 8px 2px;
+  border-radius: 8px;
+}
+.week button.active { background: var(--blue); color: white; }
+
+/* 管理后台表格 */
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th, .admin-table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.admin-table th { color: var(--muted); }
+
+
+/* ---- 无障碍浮层 ---- */
+.access {
+  position: fixed;
+  right: 16px; bottom: 16px;
+  z-index: 8;
+}
+.access-btn {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--cyan);
+  color: #051017;
+  font-size: 21px;
+  box-shadow: 0 8px 25px #0008;
+}
+.access-panel {
+  position: absolute;
+  right: 0; bottom: 58px;
+  width: 230px; padding: 14px;
+}
+.toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  font-size: 13px;
+}
+.toggle input { accent-color: var(--cyan); }
+
+
+/* ---- 登录 / 注册弹窗 ---- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: #02050bd9;
+  display: grid;
+  place-items: center;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+}
+.modal-card {
+  width: min(430px, calc(100% - 32px));
+  padding: 26px;
+}
+.modal-card h2 { margin: 7px 0; }
+.modal-tabs { display: flex; gap: 5px; margin: 18px 0; }
+.modal-tabs button {
+  flex: 1;
+  border: 0;
+  border-bottom: 2px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  padding: 9px;
+}
+.modal-tabs button.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+.modal-card label { display: block; color: #9ca8bd; font-size: 12px; margin: 11px 0 5px; }
+.hint { font-size: 11px; color: #718099; margin-top: 12px; }
+.error { color: #ff858c; font-size: 12px; min-height: 18px; margin-top: 8px; }
+
+
+/* ---- Toast 提示 ---- */
+.toast {
+  position: fixed;
+  left: 50%; bottom: 26px;
+  transform: translate(-50%, 100px);
+  opacity: 0;
+  background: #eef4ff;
+  color: #111827;
+  border-radius: 12px;
+  padding: 11px 18px;
+  z-index: 50;
+  transition: .25s;
+}
+.toast.show {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+
+/* ---- 无障碍主题 ---- */
+body.large-text {
+  --scale: 1.18;
+  font-size: 19px;
+}
+body.high-contrast {
+  --bg:     #000;
+  --panel:  #000;
+  --panel2: #111;
+  --line:   #fff;
+  --text:   #fff;
+  --muted:  #ddd;
+  --cyan:   #00ffff;
+  --blue:   #ffff00;
+  background: #000;
+}
+body.colorblind {
+  --green:  #3b82f6;   /* 蓝色 替代 绿色 */
+  --yellow: #f59e0b;
+  --red:    #d946ef;   /* 紫色 替代 红色 */
+  --seat:   #3b82f6;
+}
+
+
+/* ---- 响应式：平板 ≤1050px ---- */
+@media (max-width: 1050px) {
+  .layout { grid-template-columns: 1fr; }
+  .side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .flow { grid-row: span 2; }
+  .canvas-wrap { height: 500px; }
+}
+
+/* ---- 响应式：手机 ≤700px ---- */
+@media (max-width: 700px) {
+  .app { padding: 12px; }
+  .topbar { flex-wrap: wrap; }
+  .nav { order: 3; width: 100%; overflow: auto; }
+  .nav button { white-space: nowrap; }
+  .layout { display: block; }
+  .cinema { padding: 12px; min-height: auto; }
+  .cinema-head { display: block; }
+  .hall-tabs { margin-top: 12px; width: max-content; }
+  .canvas-wrap { height: 430px; }
+  .side { display: block; }
+  .side > .card { margin-top: 12px; }
+  .choices { grid-template-columns: 1fr 1fr; }
+  .grid3 { grid-template-columns: 1fr; }
+  .heat-layout { grid-template-columns: 1fr; }
+  .heat-canvas { height: 430px; }
+  .order { grid-template-columns: 1fr 1fr; }
+  .order > *:first-child { grid-column: span 2; }
+  .wide { padding: 14px; }
+}
 </style>
 </head>
 <body>
+
+
+<!-- ================================================================
+     #app 应用壳
+     ================================================================ -->
 <div class="app">
- <header class="topbar">
-  <div class="brand"><div class="brand-mark">S</div><div>SmartCinema<small>INTELLIGENT SEATING</small></div></div>
-  <nav class="nav" id="nav">
-   <button data-view="booking" class="active">智能选座</button><button data-view="heat">热度地图</button><button data-view="orders">订单中心</button><button data-view="admin" id="adminNav" class="hidden">管理后台</button>
-  </nav>
-  <div class="account"><div class="avatar" id="avatar">访</div><div><b id="accountName">访客</b><div class="sub" id="accountRole">请登录</div></div><button class="ghost" id="logoutBtn">登录</button></div>
- </header>
 
- <main>
-  <section class="view active" id="view-booking">
-   <div class="layout">
-    <article class="card cinema">
-     <div class="cinema-head">
-      <div><div class="eyebrow">SMART SEAT MAP</div><h1 id="hallTitle">星海小厅 · 100座</h1><div class="sub">按作业要求绘制 · 10排座位 · 弧形排列 · 排号座号完整</div></div>
-      <div class="hall-tabs" id="hallTabs"><button data-hall="small" class="active">小厅 100</button><button data-hall="medium">中厅 200</button><button data-hall="large">大厅 300</button></div>
-     </div>
-     <div class="screen"><span>银幕 SCREEN</span></div>
-     <div class="canvas-wrap"><canvas id="seatCanvas"></canvas><div class="canvas-tip">滚轮缩放 · 拖动画布 · 拖拽座位区域可框选</div></div>
-     <div class="legend"><span><i class="dot" style="background:var(--green)"></i>可选</span><span><i class="dot" style="background:var(--yellow)"></i>手动已选</span><span><i class="dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple)"></i>智能推荐</span><span><i class="dot" style="background:var(--red)"></i>已售</span></div>
-     <div class="tools"><button id="normalMode" class="active">座位模式</button><button id="dragMode">拖拽框选</button><button id="clearSeats">清空选择</button><button id="resetView">重置视图</button></div>
-    </article>
-    <aside class="side">
-     <section class="card flow">
-      <div class="steps"><i class="step done"></i><i class="step" id="step2"></i><i class="step" id="step3"></i></div>
-      <h2>1. 告诉我们观影需求</h2><div class="sub">系统会在一秒内找到更合适的位置</div>
-      <div class="section-label">票型</div><div class="choices" id="ticketChoices">
-       <button class="choice active" data-ticket="personal" data-count="1"><b>个人票</b><small>1人灵活选座</small></button>
-       <button class="choice" data-ticket="couple" data-count="2"><b>情侣票</b><small>连续双座</small></button>
-       <button class="choice" data-ticket="family" data-count="3"><b>家庭票</b><small>中后排连座</small></button>
-       <button class="choice" data-ticket="group" data-count="5"><b>团体票</b><small>5-20人同排</small></button>
+  <!-- ========== 顶部导航栏 ========== -->
+  <header class="topbar">
+
+    <!-- 品牌 -->
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div>
+        SmartCinema
+        <small>INTELLIGENT SEATING</small>
       </div>
-      <div class="section-label">观众信息</div>
-      <div id="simplePerson" class="field"><input id="personName" placeholder="姓名" value="周同学"><input id="personAge" type="number" min="1" max="120" placeholder="年龄" value="22"></div>
-      <div id="groupPerson" class="hidden"><div class="field"><input id="groupCount" type="number" min="5" max="20" value="5"><button class="choice" id="buildMembers">生成成员</button></div><div class="members" id="members"></div></div>
-      <div class="section-label">观影偏好</div>
-      <select class="full-input" id="preference"><option value="balanced">综合最佳视听</option><option value="immersive">沉浸感优先</option><option value="easy">进出方便</option><option value="quiet">安静区域</option></select>
-      <button class="primary" id="recommendBtn">智能推荐座位</button>
-      <div class="recommend hidden" id="recommendBox"><b id="recommendTitle"></b><p id="recommendReason"></p></div>
-      <div class="score-row"><div class="score-ring" id="scoreRing"><strong id="scoreValue">--</strong></div><div class="score-detail" id="scoreDetail">选择座位后，将从视角、距离和周围空位三个维度计算体验评分。</div></div>
-     </section>
-     <section class="card mini">
-      <h2>2. 确认座位</h2><div class="selected-list" id="selectedList">尚未选择座位</div>
-      <label class="sub">观影后评分（用于综合体验结果）</label><input class="full-input" id="userRating" type="range" min="1" max="5" value="5">
-     </section>
-     <section class="card mini">
-      <div class="order-total"><div><h2>3. 提交订单</h2><div class="sub">¥48 / 座</div></div><div class="price"><small>合计</small> ¥<span id="totalPrice">0</span></div></div>
-      <button class="primary" id="reserveBtn" disabled>预订座位</button><button class="primary" id="buyBtn" disabled style="background:linear-gradient(90deg,#a77dff,#6579ff);margin-top:8px">立即购票</button>
-     </section>
-    </aside>
-   </div>
-  </section>
+    </div>
 
-  <section class="view" id="view-heat">
-   <div class="card wide"><div class="wide-head"><div><div class="eyebrow">WEEKLY HEAT ANALYSIS</div><h1>影院热度地图</h1><div class="sub">Canvas 动态展示一周内热门、一般与冷门区域变化</div></div><div class="hall-tabs" id="heatHallTabs"><button data-hall="small" class="active">小厅</button><button data-hall="medium">中厅</button><button data-hall="large">大厅</button></div></div>
-   <div class="heat-layout"><canvas id="heatCanvas" class="heat-canvas"></canvas><aside><h2>选择日期</h2><div class="week" id="week"></div><div class="recommend"><b>热度说明</b><p>红色表示热门区域，黄色表示一般区域，蓝色表示冷门区域。周末中后排中心区热度更高，工作日前后排差异较小。</p></div><div class="legend" style="justify-content:flex-start"><span><i class="dot" style="background:#ef4444"></i>热门</span><span><i class="dot" style="background:#facc15"></i>一般</span><span><i class="dot" style="background:#3b82f6"></i>冷门</span></div></aside></div>
-   </div>
-  </section>
+    <!-- 主导航 -->
+    <nav class="nav" id="nav">
+      <button data-view="booking" class="active">智能选座</button>
+      <button data-view="heat">热度地图</button>
+      <button data-view="orders">订单中心</button>
+      <button data-view="admin" id="adminNav" class="hidden">管理后台</button>
+    </nav>
 
-  <section class="view" id="view-orders">
-   <div class="card wide"><div class="wide-head"><div><div class="eyebrow">LOCAL ORDER CENTER</div><h1>我的订单</h1><div class="sub">支持预订、取消预订、购票与退票，数据保存在本机</div></div><button class="ghost" id="clearOrders">清空订单</button></div><div class="orders" id="orderList"></div></div>
-  </section>
+    <!-- 账户 -->
+    <div class="account">
+      <div class="avatar" id="avatar">访</div>
+      <div>
+        <b id="accountName">访客</b>
+        <div class="sub" id="accountRole">请登录</div>
+      </div>
+      <button class="ghost" id="logoutBtn">登录</button>
+    </div>
+  </header>
 
-  <section class="view" id="view-admin">
-   <div class="grid3"><div class="card stat"><span>注册用户</span><strong id="statUsers">0</strong></div><div class="card stat"><span>当前订单</span><strong id="statOrders">0</strong></div><div class="card stat"><span>已售座位</span><strong id="statSold">0</strong></div></div>
-   <div class="card wide" style="margin-top:14px"><div class="wide-head"><div><div class="eyebrow">ADMIN CONSOLE</div><h1>影院管理后台</h1><div class="sub">查看用户、订单与放映厅售票概况</div></div><button class="ghost" id="resetData">重置演示数据</button></div><table class="admin-table"><thead><tr><th>订单号</th><th>用户</th><th>放映厅</th><th>座位</th><th>状态</th><th>金额</th></tr></thead><tbody id="adminOrders"></tbody></table></div>
-  </section>
- </main>
+
+  <main>
+
+    <!-- ================================================================
+         视图1：智能选座（默认）
+         左侧：Canvas 座位图
+         右侧：三步流程面板 —— ①需求 → ②确认 → ③提交
+         ================================================================ -->
+    <section class="view active" id="view-booking">
+      <div class="layout">
+
+        <!-- 左侧：影院 Canvas 区 -->
+        <article class="card cinema">
+          <div class="cinema-head">
+            <div>
+              <div class="eyebrow">SMART SEAT MAP</div>
+              <h1 id="hallTitle">星海小厅 · 100座</h1>
+              <div class="sub">Canvas 弧形座位图 · 点击单选 · Ctrl 多选 · 拖拽框选</div>
+            </div>
+
+            <!-- 影厅切换 -->
+            <div class="hall-tabs" id="hallTabs">
+              <button data-hall="small"  class="active">小厅 100</button>
+              <button data-hall="medium">中厅 200</button>
+              <button data-hall="large">大厅 300</button>
+            </div>
+          </div>
+
+          <!-- 银幕 -->
+          <div class="screen"><span>银幕 SCREEN</span></div>
+
+          <!-- Canvas 座位图 -->
+          <div class="canvas-wrap">
+            <canvas id="seatCanvas"></canvas>
+            <div class="canvas-tip">滚轮缩放 · 拖动画布 · 拖拽座位区域可框选</div>
+          </div>
+
+          <!-- 图例 -->
+          <div class="legend">
+            <span><i class="dot" style="background:var(--green)"></i>空座</span>
+            <span><i class="dot" style="background:var(--yellow)"></i>已选</span>
+            <span><i class="dot" style="background:var(--red)"></i>已售</span>
+            <span><i class="dot" style="background:var(--purple)"></i>智能推荐</span>
+          </div>
+
+          <!-- 工具栏 -->
+          <div class="tools">
+            <button id="normalMode" class="active">座位模式</button>
+            <button id="dragMode">拖拽框选</button>
+            <button id="clearSeats">清空选择</button>
+            <button id="resetView">重置视图</button>
+          </div>
+        </article>
+
+        <!-- 右侧：三步流程侧栏 -->
+        <aside class="side">
+
+          <!-- 第1步：需求输入 + 智能推荐 -->
+          <section class="card flow">
+            <div class="steps">
+              <i class="step done"></i>
+              <i class="step" id="step2"></i>
+              <i class="step" id="step3"></i>
+            </div>
+
+            <h2>1. 告诉我们观影需求</h2>
+            <div class="sub">系统会在一秒内找到更合适的位置</div>
+
+            <!-- 票型选择 -->
+            <div class="section-label">票型</div>
+            <div class="choices" id="ticketChoices">
+              <button class="choice active" data-ticket="personal" data-count="1">
+                <b>个人票</b><small>1人灵活选座</small>
+              </button>
+              <button class="choice" data-ticket="couple" data-count="2">
+                <b>情侣票</b><small>连续双座</small>
+              </button>
+              <button class="choice" data-ticket="family" data-count="3">
+                <b>家庭票</b><small>中后排连座</small>
+              </button>
+              <button class="choice" data-ticket="group" data-count="5">
+                <b>团体票</b><small>5-20人同排</small>
+              </button>
+            </div>
+
+            <!-- 观众信息（单人） -->
+            <div class="section-label">观众信息</div>
+            <div id="simplePerson" class="field">
+              <input id="personName" placeholder="姓名" value="周同学">
+              <input id="personAge" type="number" min="1" max="120" placeholder="年龄" value="22">
+            </div>
+
+            <!-- 观众信息（团体） -->
+            <div id="groupPerson" class="hidden">
+              <div class="field">
+                <input id="groupCount" type="number" min="5" max="20" value="5">
+                <button class="choice" id="buildMembers">生成成员</button>
+              </div>
+              <div class="members" id="members"></div>
+            </div>
+
+            <!-- 观影偏好 -->
+            <div class="section-label">观影偏好</div>
+            <select class="full-input" id="preference">
+              <option value="balanced">综合最佳视听</option>
+              <option value="immersive">沉浸感优先</option>
+              <option value="easy">进出方便</option>
+              <option value="quiet">安静区域</option>
+            </select>
+
+            <!-- 推荐按钮 -->
+            <button class="primary" id="recommendBtn">智能推荐座位</button>
+
+            <!-- 推荐结果 -->
+            <div class="recommend hidden" id="recommendBox">
+              <b id="recommendTitle"></b>
+              <p id="recommendReason"></p>
+            </div>
+
+            <!-- 体验评分（环形图 + 分项） -->
+            <div class="score-row">
+              <div class="score-ring" id="scoreRing">
+                <strong id="scoreValue">--</strong>
+              </div>
+              <div class="score-detail" id="scoreDetail">
+                选择座位后，将从视角、距离和周围空位三个维度计算体验评分。
+              </div>
+            </div>
+          </section>
+
+          <!-- 第2步：确认座位 -->
+          <section class="card mini">
+            <h2>2. 确认座位</h2>
+            <div class="selected-list" id="selectedList">尚未选择座位</div>
+            <label class="sub">观影后评分（用于综合体验结果）</label>
+            <input class="full-input" id="userRating" type="range" min="1" max="5" value="5">
+          </section>
+
+          <!-- 第3步：提交订单 -->
+          <section class="card mini">
+            <div class="order-total">
+              <div>
+                <h2>3. 提交订单</h2>
+                <div class="sub">¥48 / 座</div>
+              </div>
+              <div class="price">
+                <small>合计</small> ¥<span id="totalPrice">0</span>
+              </div>
+            </div>
+            <button class="primary" id="reserveBtn" disabled>预订座位</button>
+            <button class="primary" id="buyBtn" disabled
+                    style="background:linear-gradient(90deg,#a77dff,#6579ff);margin-top:8px">
+              立即购票
+            </button>
+          </section>
+
+        </aside>
+      </div>
+    </section>
+
+
+    <!-- ================================================================
+         视图2：热度地图
+         左 Canvas · 右日期选择 + 说明
+         ================================================================ -->
+    <section class="view" id="view-heat">
+      <div class="card wide">
+        <div class="wide-head">
+          <div>
+            <div class="eyebrow">WEEKLY HEAT ANALYSIS</div>
+            <h1>影院热度地图</h1>
+            <div class="sub">Canvas 动态展示一周内热门、一般与冷门区域变化</div>
+          </div>
+          <div class="hall-tabs" id="heatHallTabs">
+            <button data-hall="small" class="active">小厅</button>
+            <button data-hall="medium">中厅</button>
+            <button data-hall="large">大厅</button>
+          </div>
+        </div>
+
+        <div class="heat-layout">
+          <canvas id="heatCanvas" class="heat-canvas"></canvas>
+
+          <aside>
+            <h2>选择日期</h2>
+            <div class="week" id="week"></div>
+
+            <div class="recommend">
+              <b>热度说明</b>
+              <p>红色表示热门区域，黄色表示一般区域，蓝色表示冷门区域。
+                 周末中后排中心区热度更高，工作日前后排差异较小。</p>
+            </div>
+
+            <div class="legend" style="justify-content:flex-start">
+              <span><i class="dot" style="background:#ef4444"></i>热门</span>
+              <span><i class="dot" style="background:#facc15"></i>一般</span>
+              <span><i class="dot" style="background:#3b82f6"></i>冷门</span>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ================================================================
+         视图3：订单中心
+         LocalStorage 持久化，支持预订 / 购票 / 退票 / 取消
+         ================================================================ -->
+    <section class="view" id="view-orders">
+      <div class="card wide">
+        <div class="wide-head">
+          <div>
+            <div class="eyebrow">LOCAL ORDER CENTER</div>
+            <h1>我的订单</h1>
+            <div class="sub">支持预订、取消预订、购票与退票，数据保存在本机</div>
+          </div>
+        </div>
+        <div class="orders" id="orderList"></div>
+      </div>
+    </section>
+
+
+    <!-- ================================================================
+         视图4：管理后台（admin 可见）
+         统计卡片 + 全部订单表格
+         ================================================================ -->
+    <section class="view" id="view-admin">
+      <!-- 统计卡片 -->
+      <div class="grid3">
+        <div class="card stat"><span>注册用户</span><strong id="statUsers">0</strong></div>
+        <div class="card stat"><span>当前订单</span><strong id="statOrders">0</strong></div>
+        <div class="card stat"><span>已售座位</span><strong id="statSold">0</strong></div>
+      </div>
+
+      <!-- 订单管理表格 -->
+      <div class="card wide" style="margin-top:14px">
+        <div class="wide-head">
+          <div>
+            <div class="eyebrow">ADMIN CONSOLE</div>
+            <h1>影院管理后台</h1>
+            <div class="sub">查看用户、订单与放映厅售票概况</div>
+          </div>
+          <button class="ghost" id="resetData">重置演示数据</button>
+        </div>
+
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>订单号</th><th>用户</th><th>放映厅</th>
+              <th>座位</th><th>状态</th><th>金额</th>
+            </tr>
+          </thead>
+          <tbody id="adminOrders"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div><!-- /#app -->
+
+
+<!-- ================================================================
+     无障碍浮层（右下角固定）
+     ================================================================ -->
+<div class="access">
+  <button class="access-btn" id="accessBtn" aria-label="无障碍设置">♿</button>
+  <div class="card access-panel hidden" id="accessPanel">
+    <b>无障碍模式</b>
+    <label class="toggle">大字体    <input type="checkbox" id="largeText"></label>
+    <label class="toggle">高对比度  <input type="checkbox" id="contrast"></label>
+    <label class="toggle">色盲友好  <input type="checkbox" id="colorblind"></label>
+    <label class="toggle">语音提示  <input type="checkbox" id="voice"></label>
+  </div>
 </div>
 
-<div class="access"><button class="access-btn" id="accessBtn" aria-label="打开无障碍模式"><span class="access-icon">♿</span><span>无障碍模式</span></button><div class="card access-panel hidden" id="accessPanel"><b>模块5：无障碍模式</b><div class="sub">选择需要的辅助显示方式</div><label class="toggle">大字体模式<input type="checkbox" id="largeText"></label><label class="toggle">高对比度模式<input type="checkbox" id="contrast"></label><label class="toggle">色盲友好模式<input type="checkbox" id="colorblind"></label><label class="toggle">语音提示<input type="checkbox" id="voice"></label></div></div>
 
-<div class="modal" id="authModal"><div class="card modal-card"><div class="eyebrow">WELCOME TO SMARTCINEMA</div><h2>登录后开始智能选座</h2><div class="sub">新用户注册即可获得会员资格</div><div class="modal-tabs"><button id="loginTab" class="active">登录</button><button id="registerTab">注册</button></div><label>用户名</label><input class="full-input" id="authUser" autocomplete="username" placeholder="请输入用户名"><label>密码</label><input class="full-input" id="authPass" type="password" autocomplete="current-password" placeholder="请输入密码"><label id="confirmLabel" class="hidden">确认密码</label><input class="full-input hidden" id="authConfirm" type="password" placeholder="再次输入密码"><div class="error" id="authError"></div><button class="primary" id="authSubmit">登录</button><div class="hint">管理员演示账号：admin　密码：admin123<br>普通用户也可直接注册新账号。</div></div></div>
+<!-- ================================================================
+     登录 / 注册弹窗
+     ================================================================ -->
+<div class="modal" id="authModal">
+  <div class="card modal-card">
+    <div class="eyebrow">WELCOME TO SMARTCINEMA</div>
+    <h2>登录后开始智能选座</h2>
+    <div class="sub">新用户注册即可获得会员资格</div>
+
+    <!-- 登录 / 注册 切换 -->
+    <div class="modal-tabs">
+      <button id="loginTab" class="active">登录</button>
+      <button id="registerTab">注册</button>
+    </div>
+
+    <label>用户名</label>
+    <input class="full-input" id="authUser" autocomplete="username" placeholder="请输入用户名">
+
+    <label>密码</label>
+    <input class="full-input" id="authPass" type="password" autocomplete="current-password" placeholder="请输入密码">
+
+    <label id="confirmLabel" class="hidden">确认密码</label>
+    <input class="full-input hidden" id="authConfirm" type="password" placeholder="再次输入密码">
+
+    <div class="error" id="authError"></div>
+
+    <button class="primary" id="authSubmit">登录</button>
+
+    <div class="hint">
+      管理员演示账号：admin　密码：admin123<br>
+      普通用户也可直接注册新账号。
+    </div>
+  </div>
+</div>
+
+<!-- Toast 轻提示 -->
 <div class="toast" id="toast"></div>
 
+
+<!-- ================================================================
+     JavaScript — 外部模块 + 内联脚本
+     ================================================================ -->
+
+<!-- 成员D：架构 + 观影评分 + 订单中心（10 个模块） -->
+<script src="js/config.js"></script>
+<script src="js/utils/eventBus.js"></script>
+<script src="js/utils/geometry.js"></script>
+<script src="js/data/hallConfig.js"></script>
+<script src="js/data/seatData.js"></script>
+<script src="js/data/orderStorage.js"></script>
+<script src="js/engine/scoreEngine.js"></script>
+<script src="js/ui/scorePanel.js"></script>
+<script src="js/ui/orderPanel.js"></script>
+<script src="js/main.js"></script>
+
+<!-- 内联脚本 — Canvas 渲染 / 交互 / 推荐 / 认证 / 热度图
+     待成员 A / B / C 拆分为独立模块文件 -->
 <script>
-(()=>{"use strict";
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const STORE={users:"sc_users",session:"sc_session",orders:"sc_orders",sold:"sc_sold",access:"sc_access"};
-const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}},write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-if(!read(STORE.users,null))write(STORE.users,{admin:{password:"admin123",role:"admin",member:true}});
-const halls={
- small:{name:"星海小厅",cols:10,rows:10,groups:[10]},
- medium:{name:"未来中厅",cols:20,rows:10,groups:[5,10,5]},
- large:{name:"银河大厅",cols:30,rows:10,groups:[5,20,5]}
-};
-Object.values(halls).forEach(H=>H.capacity=H.cols*H.rows);let hall="small",ticket="personal",selected=new Set(),recommended=new Set(),seats=[],scale=1,offsetX=0,offsetY=0,dragSelect=false,pointer=null,authMode="login",heatHall="small",heatDay=0;
-const canvas=$("#seatCanvas"),ctx=canvas.getContext("2d"),heatCanvas=$("#heatCanvas"),hctx=heatCanvas.getContext("2d");
-const user=()=>read(STORE.session,null),orders=()=>read(STORE.orders,[]),soldMap=()=>read(STORE.sold,{});
-function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");voice(t);setTimeout(()=>e.classList.remove("show"),2200)}
-function voice(t){if($("#voice").checked&&"speechSynthesis"in window){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(t))}}
-function resize(){const d=devicePixelRatio||1,r=canvas.getBoundingClientRect();if(r.width&&r.height){canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);drawSeats()}const hr=heatCanvas.getBoundingClientRect();if(hr.width&&hr.height){heatCanvas.width=hr.width*d;heatCanvas.height=hr.height*d;hctx.setTransform(d,0,0,d,0,0);drawHeat()}}
-function makeSeats(){seats=[];const H=halls[hall];for(let row=1;row<=H.rows;row++)for(let col=1;col<=H.cols;col++)seats.push({row,col,rowLabel:String(row),type:"standard",id:`${row}-${col}`,sold:(soldMap()[hall]||[]).includes(`${row}-${col}`),x:0,y:0,r:0});selected.clear();recommended.clear();updateOrder()}
-function seatGeometry(c,H,w,h){
- const margin=w<560?42:60,top=48,bottom=38,aisleUnits=1.35;
- const boundaries=[];H.groups.slice(0,-1).reduce((n,g)=>(boundaries.push(n+g),n+g),0);
- const slots=H.cols-1+boundaries.length*aisleUnits,widthScale=H.cols===10?.68:H.cols===20?.86:.96,gap=((w-margin*2)*widthScale)/slots,rowGap=(h-top-bottom)/(H.rows-1);
- c.forEach(s=>{const passed=boundaries.filter(b=>s.col>b).length,local=(s.col-1+passed*aisleUnits-slots/2)*gap,norm=local/((w-margin*2)/2||1);s.x=w/2+local;s.y=top+(s.row-1)*rowGap-Math.pow(norm,2)*12;s.r=Math.max(5,Math.min(12,gap*.36,rowGap*.3))});
- return{rowGap};
-}
-function drawHallGuides(meta,H,w,h){ctx.save();ctx.setLineDash([4,5]);ctx.lineWidth=1;ctx.strokeStyle="#7f8da33f";ctx.beginPath();ctx.moveTo(w/2,18);ctx.lineTo(w/2,h-34);ctx.stroke();ctx.fillStyle="#748198";ctx.font="9px Arial";ctx.textAlign="center";ctx.fillText("银幕中央",w/2,13);ctx.setLineDash([]);ctx.fillStyle="#65738c";ctx.font="10px Arial";ctx.textBaseline="middle";for(let row=1;row<=H.rows;row++){const ss=seats.filter(x=>x.row===row);ctx.fillText(`${row}排`,20,ss[0].y);ctx.fillText(`${row}排`,w-20,ss[ss.length-1].y)}ctx.restore()}
-function drawSeats(){const w=canvas.clientWidth,h=canvas.clientHeight,H=halls[hall];ctx.clearRect(0,0,w,h);ctx.save();ctx.translate(offsetX,offsetY);ctx.scale(scale,scale);const meta=seatGeometry(seats,H,w,h);drawHallGuides(meta,H,w,h);ctx.font=`bold ${H.cols>=30?7:H.cols>=20?8:9}px Arial`;ctx.textAlign="center";ctx.textBaseline="middle";seats.forEach(s=>{const isRec=recommended.has(s.id),isSel=selected.has(s.id),isAvailable=!s.sold&&!isRec&&!isSel,c=s.sold?getCss("--red"):isRec?getCss("--purple"):isSel?getCss("--yellow"):getCss("--green");ctx.save();ctx.fillStyle=c;ctx.globalAlpha=isAvailable?.74:s.sold?.92:1;if(isRec&&!s.sold){ctx.shadowColor=getCss("--purple");ctx.shadowBlur=12;ctx.strokeStyle="#ffffff";ctx.lineWidth=Math.max(1.2,s.r*.13)}roundRect(ctx,s.x-s.r,s.y-s.r*.78,s.r*2,s.r*1.56,Math.max(2,s.r*.32));ctx.fill();if(isRec&&!s.sold)ctx.stroke();ctx.shadowBlur=0;ctx.fillStyle=c;roundRect(ctx,s.x-s.r*.82,s.y+s.r*.55,s.r*1.64,s.r*.32,2);ctx.fill();ctx.globalAlpha=1;if(s.r>7){ctx.fillStyle=s.sold||isRec?"#ffffff":isAvailable?"#eafff7":"#071017";ctx.fillText(s.col,s.x,s.y-.5)}ctx.restore()});ctx.globalAlpha=1;if(pointer?.box){ctx.strokeStyle=getCss("--cyan");ctx.fillStyle="#65e7ff20";ctx.lineWidth=1.5;const b=box(pointer.start,pointer.now);ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeRect(b.x,b.y,b.w,b.h)}ctx.restore()}function roundRect(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):(c.rect(x,y,w,h));}
-const getCss=x=>getComputedStyle(document.body).getPropertyValue(x).trim();
-function point(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left-offsetX)/scale,y:(e.clientY-r.top-offsetY)/scale}}
-function hit(p){return seats.find(s=>Math.abs(s.x-p.x)<=s.r+3&&Math.abs(s.y-p.y)<=s.r+3)}
-function box(a,b){return{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(a.x-b.x),h:Math.abs(a.y-b.y)}}
-canvas.addEventListener("pointerdown",e=>{canvas.setPointerCapture(e.pointerId);const p=point(e),s=hit(p);if(dragSelect&&!s)pointer={box:true,start:p,now:p};else if(e.button===1||(!s&&!dragSelect))pointer={pan:true,start:{x:e.clientX,y:e.clientY},origin:{x:offsetX,y:offsetY}};else if(s&&!s.sold){if(!e.ctrlKey&&!e.metaKey)selected.clear();selected.has(s.id)?selected.delete(s.id):selected.add(s.id);recommended.delete(s.id);updateOrder();drawSeats()}});
-canvas.addEventListener("pointermove",e=>{if(!pointer)return;if(pointer.box)pointer.now=point(e);if(pointer.pan){offsetX=pointer.origin.x+e.clientX-pointer.start.x;offsetY=pointer.origin.y+e.clientY-pointer.start.y}drawSeats()});
-canvas.addEventListener("pointerup",()=>{if(pointer?.box){const b=box(pointer.start,pointer.now);seats.filter(s=>!s.sold&&s.x>=b.x&&s.x<=b.x+b.w&&s.y>=b.y&&s.y<=b.y+b.h).forEach(s=>selected.add(s.id));updateOrder()}pointer=null;drawSeats()});
-canvas.addEventListener("wheel",e=>{e.preventDefault();scale=Math.max(.65,Math.min(2.1,scale+(e.deltaY<0?.1:-.1)));drawSeats()},{passive:false});
-function validRows(ages,H){let min=1,max=H.rows;if(ages.some(a=>a<15))min=Math.min(4,H.rows);if(ages.some(a=>a>60))max=Math.max(min,H.rows-3);return{min,max}}
-function recommend(){if(!requireLogin())return;let count=ticket==="group"?Math.max(5,Math.min(20,+$("#groupCount").value||5)):+$(`.choice[data-ticket="${ticket}"]`).dataset.count;let ages=ticket==="group"?$$(".member-age").map(x=>+x.value||30):[+$("#personAge").value||30];const H=halls[hall],pref=$("#preference").value;if(count>H.cols){toast("当前放映厅单排无法容纳，请选择更大的厅");return}const vr=validRows(ages,H),ideal=Math.round(H.rows*.62),baseTarget=ticket==="family"?Math.min(H.rows,ideal+1):ideal,target=pref==="immersive"?Math.max(vr.min,baseTarget-2):pref==="quiet"?Math.min(vr.max,H.rows-1):baseTarget,bounds=[];H.groups.slice(0,-1).reduce((n,g)=>(bounds.push(n+g),n+g),0);const aisleCenters=[.5,...bounds.map(b=>b+.5),H.cols+.5];let candidates=[];for(let r=vr.min;r<=vr.max;r++)for(let st=1;st<=H.cols-count+1;st++){if(bounds.some(b=>st<=b&&st+count-1>b))continue;const group=[];for(let c=st;c<st+count;c++)group.push(seats.find(s=>s.row===r&&s.col===c));if(group.every(s=>s&&!s.sold&&s.type!=="accessible")){const center=st+(count-1)/2,centerDist=Math.abs(center-(H.cols+1)/2),aisleDist=Math.min(...aisleCenters.map(a=>Math.abs(center-a))),nearSold=group.reduce((n,s)=>n+seats.filter(o=>o.sold&&Math.abs(o.row-s.row)<=1&&Math.abs(o.col-s.col)<=2).length,0);let score=100-Math.abs(r-target)*7-centerDist*2;if(pref==="immersive")score=100-Math.abs(r-target)*10-centerDist*2.2;if(pref==="easy")score=100-Math.abs(r-baseTarget)*3-aisleDist*8;if(pref==="quiet")score=100-Math.abs(r-target)*8-centerDist*.8-nearSold*6;candidates.push({group,score})}}candidates.sort((a,b)=>b.score-a.score);if(!candidates.length){toast("没有符合规则的同排连续座位");return}selected.clear();recommended.clear();candidates[0].group.forEach(s=>{selected.add(s.id);recommended.add(s.id)});$("#recommendBox").classList.remove("hidden");$("#recommendTitle").textContent=`已推荐 ${labelSeats(candidates[0].group.map(s=>s.id))}`;const prefRule={balanced:"综合视角、距离与中心位置",immersive:"优先靠前排，增强画面沉浸感",easy:"优先靠近边缘或过道，方便进出",quiet:"优先后排且避开已售座位密集区域"}[pref];let rule=ages.some(a=>a<15)?"已避开前三排；":ages.some(a=>a>60)?"已避开最后三排；":ticket==="family"?"家庭成员同排连续；":ticket==="couple"?"情侣连续双座；":ticket==="group"?"所有成员同排连续；":"";$("#recommendReason").textContent=`推荐理由：${rule}${prefRule}。你仍可在左侧手动调整。`;$("#step2").classList.add("done");updateOrder();drawSeats();toast("智能推荐完成")}
-function labelSeats(ids=[...selected]){return ids.sort((a,b)=>{const[x,y]=a.split("-").map(Number),[m,n]=b.split("-").map(Number);return x-m||y-n}).map(x=>{const[r,c]=x.split("-");return`${r}排${c}座`}).join("、")}
-function calcScore(){if(!selected.size){$("#scoreValue").textContent="--";$("#scoreRing").style.setProperty("--pct","0%");$("#scoreDetail").textContent="选择座位后，将从视角、距离和周围空位三个维度计算体验评分。";return}const H=halls[hall],ss=seats.filter(s=>selected.has(s.id)),avgR=ss.reduce((a,s)=>a+s.row,0)/ss.length,avgC=ss.reduce((a,s)=>a+s.col,0)/ss.length,ideal=H.rows*.62;const view=Math.max(50,100-Math.abs(avgC-(H.cols+1)/2)*(90/H.cols)),dist=Math.max(50,100-Math.abs(avgR-ideal)*(85/H.rows)),space=Math.max(50,96-ss.reduce((n,s)=>n+seats.filter(o=>o.sold&&Math.abs(o.row-s.row)<=1&&Math.abs(o.col-s.col)<=1).length,0)*5),sys=Math.round(view*.4+dist*.35+space*.25),rating=+$("#userRating").value*20,total=Math.round(sys*.8+rating*.2),grade=total>=90?"极佳":total>=80?"优秀":"一般",gradeColor=grade==="极佳"?"var(--cyan)":grade==="优秀"?"var(--yellow)":"var(--red)";$("#scoreValue").textContent=total;$("#scoreRing").style.setProperty("--pct",total+"%");$("#scoreDetail").innerHTML=`<b style="color:${gradeColor}">${grade}</b><br>视角 ${Math.round(view)} · 距离 ${Math.round(dist)} · 空间 ${Math.round(space)}<br>综合观众评分 ${$("#userRating").value}/5`}
-function updateOrder(){$("#selectedList").textContent=selected.size?labelSeats():"尚未选择座位";$("#totalPrice").textContent=selected.size*48;$("#reserveBtn").disabled=$("#buyBtn").disabled=!selected.size;$("#step3").classList.toggle("done",!!selected.size);calcScore()}
-function requireLogin(){if(user())return true;openAuth();toast("请先登录");return false}
-function createOrder(status){if(!requireLogin()||!selected.size)return;const o={id:"SC"+Date.now().toString().slice(-9),user:user().name,hall,hallName:halls[hall].name,seats:[...selected],status,amount:selected.size*48,time:new Date().toLocaleString()};const list=orders();list.unshift(o);write(STORE.orders,list);if(status==="已购票"){const sm=soldMap();sm[hall]=[...new Set([...(sm[hall]||[]),...selected])];write(STORE.sold,sm)}toast(status==="已购票"?"购票成功":"预订成功");makeSeats();renderOrders()}
-function renderOrders(){const u=user(),list=orders().filter(o=>u&&(u.role==="admin"||o.user===u.name));$("#orderList").innerHTML=list.length?list.map(o=>`<div class="order"><div><b>${o.hallName}</b><div class="sub">${labelSeats(o.seats)}</div></div><div>${o.time}</div><div class="pill">${o.status}</div><div>¥${o.amount}</div><button data-order="${o.id}">${o.status==="已预订"?"取消预订":"退票"}</button></div>`).join(""):`<div class="sub">暂无订单，完成一次选座后订单会出现在这里。</div>`;$("#orderList").querySelectorAll("button").forEach(b=>b.onclick=()=>cancelOrder(b.dataset.order));renderAdmin()}
-function cancelOrder(id){let list=orders(),o=list.find(x=>x.id===id);if(!o)return;if(o.status==="已购票"){const sm=soldMap();sm[o.hall]=(sm[o.hall]||[]).filter(x=>!o.seats.includes(x));write(STORE.sold,sm);o.status="已退票"}else o.status="已取消";write(STORE.orders,list);toast(o.status);makeSeats();renderOrders()}
-function clearOrders(){const u=user();if(!u)return;if(!confirm(u.role==="admin"?"确定清空全部订单和已售座位吗？":"确定清空你的全部订单吗？已购票座位也会同时释放。"))return;const list=orders(),removed=u.role==="admin"?list:list.filter(o=>o.user===u.name),kept=u.role==="admin"?[]:list.filter(o=>o.user!==u.name),sm=soldMap();removed.filter(o=>o.status==="已购票").forEach(o=>sm[o.hall]=(sm[o.hall]||[]).filter(x=>!o.seats.includes(x)));write(STORE.orders,kept);write(STORE.sold,u.role==="admin"?{}:sm);makeSeats();renderOrders();toast("订单已清空")}
-function renderAdmin(){const list=orders(),users=read(STORE.users,{});$("#statUsers").textContent=Object.keys(users).length-1;$("#statOrders").textContent=list.filter(o=>!["已取消","已退票"].includes(o.status)).length;$("#statSold").textContent=Object.values(soldMap()).reduce((n,a)=>n+a.length,0);$("#adminOrders").innerHTML=list.map(o=>`<tr><td>${o.id}</td><td>${o.user}</td><td>${o.hallName}</td><td>${labelSeats(o.seats)}</td><td>${o.status}</td><td>¥${o.amount}</td></tr>`).join("")||`<tr><td colspan="6" class="sub">暂无订单</td></tr>`}
-function drawHeat(){const w=heatCanvas.clientWidth,h=heatCanvas.clientHeight;if(!w)return;hctx.clearRect(0,0,w,h);hctx.fillStyle="#dbeafe";hctx.textAlign="center";hctx.font="11px Arial";hctx.fillText("银幕 SCREEN",w/2,25);hctx.fillStyle="#7c8aa5";hctx.fillRect(w*.18,34,w*.64,4);const H=halls[heatHall],temp=[];for(let row=1;row<=H.rows;row++)for(let col=1;col<=H.cols;col++)temp.push({row,col});seatGeometry(temp,H,w,h-30);temp.forEach(s=>{const weekend=heatDay>=5?12:0,center=Math.abs(s.col-(H.cols+1)/2)/(H.cols/2),rowBest=Math.abs(s.row-H.rows*.62),noise=Math.sin((s.row*17+s.col*11+heatDay*23))*.08;const heat=.92-center*.42-rowBest*(.65/H.rows)+weekend/100+noise;hctx.fillStyle=heat>.72?"#ef4444":heat>.53?"#facc15":"#3b82f6";hctx.globalAlpha=.78;roundRect(hctx,s.x-s.r,s.y+30-s.r,s.r*2,s.r*2,3);hctx.fill()});hctx.globalAlpha=1}
-function buildWeek(){const names=["周一","周二","周三","周四","周五","周六","周日"];$("#week").innerHTML=names.map((n,i)=>`<button data-day="${i}" class="${i===heatDay?"active":""}">${n}</button>`).join("");$("#week").querySelectorAll("button").forEach(b=>b.onclick=()=>{heatDay=+b.dataset.day;buildWeek();drawHeat()})}
-function openAuth(){authMode="login";syncAuth();$("#authModal").classList.remove("hidden")}function syncAuth(){const reg=authMode==="register";$("#loginTab").classList.toggle("active",!reg);$("#registerTab").classList.toggle("active",reg);$("#confirmLabel").classList.toggle("hidden",!reg);$("#authConfirm").classList.toggle("hidden",!reg);$("#authSubmit").textContent=reg?"注册并登录":"登录";$("#authError").textContent=""}
-function submitAuth(){const name=$("#authUser").value.trim(),pass=$("#authPass").value,users=read(STORE.users,{});if(!name||pass.length<4){$("#authError").textContent="用户名不能为空，密码至少4位";return}if(authMode==="register"){if(users[name]){$("#authError").textContent="用户名已存在";return}if(pass!==$("#authConfirm").value){$("#authError").textContent="两次密码不一致";return}users[name]={password:pass,role:"user",member:true};write(STORE.users,users)}else if(!users[name]||users[name].password!==pass){$("#authError").textContent="用户名或密码错误";return}write(STORE.session,{name,role:users[name].role});$("#authModal").classList.add("hidden");syncAccount();toast(`欢迎，${name}`)}
-function syncAccount(){const u=user();$("#accountName").textContent=u?u.name:"访客";$("#accountRole").textContent=u?(u.role==="admin"?"管理员":"影院会员"):"请登录";$("#avatar").textContent=u?u.name.slice(0,1).toUpperCase():"访";$("#logoutBtn").textContent=u?"退出":"登录";$("#adminNav").classList.toggle("hidden",!u||u.role!=="admin");renderOrders()}
-$$(".nav button").forEach(b=>b.onclick=()=>{if(b.dataset.view!=="booking"&&!requireLogin())return;$$(".nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");$$(".view").forEach(x=>x.classList.remove("active"));$(`#view-${b.dataset.view}`).classList.add("active");if(b.dataset.view==="booking"||b.dataset.view==="heat")requestAnimationFrame(resize);if(b.dataset.view==="orders")renderOrders();if(b.dataset.view==="admin")renderAdmin()});
-$("#hallTabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{$("#hallTabs").querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");hall=b.dataset.hall;$("#hallTitle").textContent=`${halls[hall].name} · ${halls[hall].capacity}座`;scale=1;offsetX=offsetY=0;makeSeats();drawSeats()});
-$("#heatHallTabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{$("#heatHallTabs").querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");heatHall=b.dataset.hall;drawHeat()});
-$("#ticketChoices").querySelectorAll(".choice").forEach(b=>b.onclick=()=>{$("#ticketChoices").querySelectorAll(".choice").forEach(x=>x.classList.remove("active"));b.classList.add("active");ticket=b.dataset.ticket;$("#groupPerson").classList.toggle("hidden",ticket!=="group");$("#simplePerson").classList.toggle("hidden",ticket==="group");if(ticket==="group")buildMembers()});
-function buildMembers(){const n=Math.max(5,Math.min(20,+$("#groupCount").value||5));$("#groupCount").value=n;$("#members").innerHTML=Array.from({length:n},(_,i)=>`<div class="member-row"><input class="full-input" value="成员${i+1}" aria-label="成员姓名"><input class="full-input member-age" type="number" min="1" max="120" value="${20+i%4}" aria-label="成员年龄"><button aria-label="删除成员">×</button></div>`).join("");$("#members").querySelectorAll("button").forEach(b=>b.onclick=()=>b.parentElement.remove())}
-$("#buildMembers").onclick=buildMembers;$("#recommendBtn").onclick=recommend;$("#reserveBtn").onclick=()=>createOrder("已预订");$("#buyBtn").onclick=()=>createOrder("已购票");$("#userRating").oninput=calcScore;$("#clearSeats").onclick=()=>{selected.clear();recommended.clear();updateOrder();drawSeats()};$("#resetView").onclick=()=>{scale=1;offsetX=offsetY=0;drawSeats()};$("#normalMode").onclick=()=>{dragSelect=false;$("#normalMode").classList.add("active");$("#dragMode").classList.remove("active")};$("#dragMode").onclick=()=>{dragSelect=true;$("#dragMode").classList.add("active");$("#normalMode").classList.remove("active")};
-$("#clearOrders").onclick=clearOrders;
-$("#loginTab").onclick=()=>{authMode="login";syncAuth()};$("#registerTab").onclick=()=>{authMode="register";syncAuth()};$("#authSubmit").onclick=submitAuth;$("#authPass").onkeydown=e=>{if(e.key==="Enter")submitAuth()};$("#logoutBtn").onclick=()=>{if(user()){localStorage.removeItem(STORE.session);syncAccount();toast("已退出登录")}else openAuth()};
-$("#accessBtn").onclick=()=>$("#accessPanel").classList.toggle("hidden");const acc=read(STORE.access,{});[["largeText","large-text"],["contrast","high-contrast"],["colorblind","colorblind"]].forEach(([id,cls])=>{const el=$("#"+id);el.checked=!!acc[id];document.body.classList.toggle(cls,el.checked);el.onchange=()=>{document.body.classList.toggle(cls,el.checked);const a=read(STORE.access,{});a[id]=el.checked;write(STORE.access,a);resize()}});$("#voice").checked=!!acc.voice;$("#voice").onchange=()=>{const a=read(STORE.access,{});a.voice=$("#voice").checked;write(STORE.access,a);voice("语音提示已开启")};
-$("#resetData").onclick=()=>{if(confirm("确定重置所有演示订单和售座数据吗？")){write(STORE.orders,[]);write(STORE.sold,{});makeSeats();renderOrders();toast("演示数据已重置")}};
-buildMembers();buildWeek();makeSeats();syncAccount();window.addEventListener("resize",resize);setTimeout(resize,50);if(user())$("#authModal").classList.add("hidden");
+(() => {
+  'use strict';
+
+  /* ==================== 工具函数 ==================== */
+  const $  = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+
+  const STORE = { users: 'sc_users', session: 'sc_session', orders: 'sc_orders', sold: 'sc_sold', access: 'sc_access' };
+  const read  = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
+  const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+  // 初始化默认管理员
+  if (!read(STORE.users, null)) {
+    write(STORE.users, { admin: { password: 'admin123', role: 'admin', member: true } });
+  }
+
+  /* ==================== 状态变量 ==================== */
+  const halls = {
+    small:  { name: '星海小厅', cols: 10, rows: 10 },
+    medium: { name: '未来中厅', cols: 20, rows: 10 },
+    large:  { name: '银河大厅', cols: 30, rows: 10 },
+  };
+
+  let hall       = 'small';
+  let ticket     = 'personal';
+  let selected   = new Set();
+  let recommended = new Set();
+  let seats      = [];
+  let scale      = 1;
+  let offsetX    = 0;
+  let offsetY    = 0;
+  let dragSelect = false;
+  let pointer    = null;
+  let authMode   = 'login';
+  let heatHall   = 'small';
+  let heatDay    = 0;
+
+  const canvas     = $('#seatCanvas');
+  const ctx        = canvas.getContext('2d');
+  const heatCanvas = $('#heatCanvas');
+  const hctx       = heatCanvas.getContext('2d');
+
+  /* ==================== 账户管理 ==================== */
+  const user    = () => read(STORE.session, null);
+  const orders  = () => read(STORE.orders, []);
+  const soldMap = () => read(STORE.sold, {});
+
+  /* ==================== Toast / 语音 ==================== */
+  function toast(t) {
+    const el = $('#toast');
+    el.textContent = t;
+    el.classList.add('show');
+    voice(t);
+    setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  function voice(t) {
+    if ($('#voice').checked && 'speechSynthesis' in window) {
+      speechSynthesis.cancel();
+      speechSynthesis.speak(new SpeechSynthesisUtterance(t));
+    }
+  }
+
+  /* ==================== Canvas 绘制 ==================== */
+
+  /** 获取 CSS 变量值 */
+  const getCss = x => getComputedStyle(document.body).getPropertyValue(x).trim();
+
+  /** DPR 自适应 + 绘制座位图 & 热度图 */
+  function resize() {
+    const d = devicePixelRatio || 1;
+
+    // 座位 Canvas
+    const r = canvas.getBoundingClientRect();
+    canvas.width  = r.width * d;
+    canvas.height = r.height * d;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    drawSeats();
+
+    // 热度 Canvas
+    const hr = heatCanvas.getBoundingClientRect();
+    heatCanvas.width  = hr.width * d;
+    heatCanvas.height = hr.height * d;
+    hctx.setTransform(d, 0, 0, d, 0, 0);
+    drawHeat();
+  }
+
+  /** 生成座位数组 */
+  function makeSeats() {
+    seats = [];
+    const H = halls[hall];
+    for (let row = 1; row <= H.rows; row++) {
+      for (let col = 1; col <= H.cols; col++) {
+        seats.push({
+          row, col,
+          id: `${row}-${col}`,
+          sold: (soldMap()[hall] || []).includes(`${row}-${col}`),
+          x: 0, y: 0, r: 0,
+        });
+      }
+    }
+    selected.clear();
+    recommended.clear();
+    updateOrder();
+  }
+
+  /** 计算座位 Canvas 坐标（弧形排列） */
+  function seatGeometry(seatArr, H, w, h) {
+    const margin   = H.cols > 20 ? 34 : 56;
+    const gap      = (w - margin * 2) / (H.cols - 1 || 1);
+    const baseY    = 48;
+    const rowGap   = (h - 92) / (H.rows - 1 || 1);
+    const size     = Math.max(5, Math.min(13, gap * 0.32));
+    const center   = (H.cols + 1) / 2;
+
+    seatArr.forEach(s => {
+      const curve = Math.pow((s.col - center) / (H.cols / 2), 2) * 24;
+      s.x = margin + (s.col - 1) * gap;
+      s.y = baseY + (s.row - 1) * rowGap + curve;
+      s.r = size;
+    });
+  }
+
+  /** 绘制座位图主循环 */
+  function drawSeats() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+
+    seatGeometry(seats, halls[hall], w, h);
+    ctx.font = `${halls[hall].cols > 20 ? 7 : 9}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    seats.forEach(s => {
+      // 颜色逻辑：已售(红) > 系统推荐(紫) > 用户选中(黄) > 空座(绿)
+      let c;
+      if (s.sold)                c = getCss('--red');
+      else if (selected.has(s.id))    c = getCss('--yellow');
+      else if (recommended.has(s.id)) c = getCss('--purple');
+      else                            c = getCss('--green');
+
+      ctx.fillStyle = c;
+      ctx.globalAlpha = s.sold ? 0.9 : 1;
+      roundRect(ctx, s.x - s.r, s.y - s.r, s.r * 2, s.r * 2, Math.max(2, s.r * 0.35));
+      ctx.fill();
+
+      // 座位够大时写列号
+      if (s.r > 8) {
+        ctx.fillStyle = s.sold ? '#fff' : '#071017';
+        ctx.fillText(s.col, s.x, s.y + 0.5);
+      }
+    });
+
+    ctx.globalAlpha = 1;
+
+    // 拖拽框选矩形
+    if (pointer && pointer.box) {
+      ctx.strokeStyle = getCss('--cyan');
+      ctx.fillStyle   = '#65e7ff20';
+      ctx.lineWidth   = 1.5;
+      const b = box(pointer.start, pointer.now);
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.strokeRect(b.x, b.y, b.w, b.h);
+    }
+
+    ctx.restore();
+  }
+
+  /** 兼容无 roundRect 的浏览器（Safari 旧版） */
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    if (c.roundRect) { c.roundRect(x, y, w, h, r); } else { c.rect(x, y, w, h); }
+  }
+
+  /* ==================== 交互：点击 / 拖拽 / 缩放 ==================== */
+
+  /** 鼠标/触摸坐标 → Canvas 逻辑坐标 */
+  function point(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left - offsetX) / scale,
+      y: (e.clientY - rect.top  - offsetY) / scale,
+    };
+  }
+
+  /** 碰撞检测：找到鼠标命中的座位 */
+  function hit(p) {
+    return seats.find(s =>
+      Math.abs(s.x - p.x) <= s.r + 3 && Math.abs(s.y - p.y) <= s.r + 3
+    );
+  }
+
+  /** 矩形坐标归一化 */
+  function box(a, b) {
+    return {
+      x: Math.min(a.x, b.x), y: Math.min(a.y, b.y),
+      w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y),
+    };
+  }
+
+  // pointerdown — 判断是 选座 / 框选 / 平移
+  canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId);
+    const p = point(e);
+    const s = hit(p);
+
+    if (dragSelect && !s) {
+      // 拖拽框选模式
+      pointer = { box: true, start: p, now: p };
+    } else if (e.button === 1 || (!s && !dragSelect)) {
+      // 中键拖拽 或 空白区域拖拽 → 平移画布
+      pointer = {
+        pan: true,
+        start:  { x: e.clientX, y: e.clientY },
+        origin: { x: offsetX,  y: offsetY },
+      };
+    } else if (s && !s.sold) {
+      // 点击座位：Ctrl=多选，否则=单选
+      if (!e.ctrlKey && !e.metaKey) selected.clear();
+      if (selected.has(s.id)) { selected.delete(s.id); }
+      else                     { selected.add(s.id); }
+      recommended.delete(s.id);
+      updateOrder();
+      drawSeats();
+    }
+  });
+
+  // pointermove — 框选拉动 / 画布平移
+  canvas.addEventListener('pointermove', e => {
+    if (!pointer) return;
+    if (pointer.box) { pointer.now = point(e); }
+    if (pointer.pan) {
+      offsetX = pointer.origin.x + e.clientX - pointer.start.x;
+      offsetY = pointer.origin.y + e.clientY - pointer.start.y;
+    }
+    drawSeats();
+  });
+
+  // pointerup — 完成框选
+  canvas.addEventListener('pointerup', () => {
+    if (pointer && pointer.box) {
+      const b = box(pointer.start, pointer.now);
+      seats
+        .filter(s => !s.sold && s.x >= b.x && s.x <= b.x + b.w && s.y >= b.y && s.y <= b.y + b.h)
+        .forEach(s => selected.add(s.id));
+      updateOrder();
+    }
+    pointer = null;
+    drawSeats();
+  });
+
+  // 滚轮缩放
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    scale = Math.max(0.65, Math.min(2.1, scale + (e.deltaY < 0 ? 0.1 : -0.1)));
+    drawSeats();
+  }, { passive: false });
+
+  /* ==================== 智能推荐引擎 ==================== */
+
+  /** 年龄 → 推荐排数范围 */
+  function validRows(ages) {
+    let min = 1, max = halls[hall].rows;
+    if (ages.some(a => a < 15)) min = 4;   // 青少年避开前三排
+    if (ages.some(a => a > 60)) max = 7;   // 老年人避开后三排
+    return { min, max };
+  }
+
+  function recommend() {
+    if (!requireLogin()) return;
+
+    // 获取人数和年龄
+    const count = ticket === 'group'
+      ? Math.max(5, Math.min(20, +$('#groupCount').value || 5))
+      : +document.querySelector(`.choice[data-ticket="${ticket}"]`).dataset.count;
+
+    const ages = ticket === 'group'
+      ? $$('.member-age').map(x => +x.value || 30)
+      : [+$('#personAge').value || 30];
+
+    const H = halls[hall];
+    if (count > H.cols) {
+      toast('当前放映厅单排无法容纳，请选择更大的厅');
+      return;
+    }
+
+    // 目标排数
+    const vr     = validRows(ages);
+    const target = ticket === 'family' ? 7 :
+                   ticket === 'couple' ? 6 :
+                   $('#preference').value === 'immersive' ? 5 : 6;
+
+    // 遍历所有可能的同排连续座位组
+    let candidates = [];
+    for (let r = vr.min; r <= vr.max; r++) {
+      for (let st = 1; st <= H.cols - count + 1; st++) {
+        const group = [];
+        for (let c = st; c < st + count; c++) {
+          group.push(seats.find(s => s.row === r && s.col === c));
+        }
+
+        if (group.every(s => s && !s.sold)) {
+          const cntr = st + (count - 1) / 2;
+          const score = 100
+            - Math.abs(r - target) * 7
+            - Math.abs(cntr - (H.cols + 1) / 2) * 2;
+          candidates.push({ group, score });
+        }
+      }
+    }
+
+    candidates.sort((a, b) => b.score - a.score);
+
+    if (!candidates.length) {
+      toast('没有符合规则的同排连续座位');
+      return;
+    }
+
+    // 应用推荐
+    selected.clear();
+    recommended.clear();
+    candidates[0].group.forEach(s => {
+      selected.add(s.id);
+      recommended.add(s.id);
+    });
+
+    // 推荐文案
+    $('#recommendBox').classList.remove('hidden');
+    $('#recommendTitle').textContent = `已推荐 ${labelSeats(candidates[0].group.map(s => s.id))}`;
+
+    let rule;
+    if (ages.some(a => a < 15))       rule = '已避开前三排';
+    else if (ages.some(a => a > 60))  rule = '已避开最后三排';
+    else if (ticket === 'couple')     rule = '中间区域连续双座';
+    else if (ticket === 'family')     rule = '中后排连续座位';
+    else if (ticket === 'group')      rule = '所有成员同排连续';
+    else                              rule = '视角与距离综合最佳';
+
+    $('#recommendReason').textContent =
+      `推荐理由：${rule}，中心视角更自然，周围可用空间充足。你仍可在左侧手动调整。`;
+    $('#step2').classList.add('done');
+    updateOrder();
+    drawSeats();
+    toast('智能推荐完成');
+  }
+
+  /** 座位 id → 人类可读文本 */
+  function labelSeats(ids = [...selected]) {
+    return ids
+      .sort((a, b) => {
+        const [x, y] = a.split('-').map(Number);
+        const [m, n] = b.split('-').map(Number);
+        return x - m || y - n;
+      })
+      .map(x => { const [r, c] = x.split('-'); return `${r}排${c}座`; })
+      .join('、');
+  }
+
+  /* ==================== 体验评分（inline 版 — 外部 ScoreEngine 可替换） ==================== */
+
+  function calcScore() {
+    if (!selected.size) {
+      $('#scoreValue').textContent = '--';
+      $('#scoreRing').style.setProperty('--pct', '0%');
+      $('#scoreDetail').textContent = '选择座位后，将从视角、距离和周围空位三个维度计算体验评分。';
+      return;
+    }
+
+    const H    = halls[hall];
+    const ss   = seats.filter(s => selected.has(s.id));
+    const avgR = ss.reduce((a, s) => a + s.row, 0) / ss.length;
+    const avgC = ss.reduce((a, s) => a + s.col, 0) / ss.length;
+
+    // 三因子评分
+    const view  = Math.max(55, 100 - Math.abs(avgC - (H.cols + 1) / 2) * 4);
+    const dist  = Math.max(55, 100 - Math.abs(avgR - 6) * 8);
+    const space = Math.max(55, 96 - ss.reduce((n, s) =>
+      n + seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length, 0
+    ) * 4);
+
+    const sys   = Math.round(view * 0.4 + dist * 0.35 + space * 0.25);
+    const rating = +$('#userRating').value * 20;
+    const total  = Math.round(sys * 0.8 + rating * 0.2);
+    const grade  = total >= 90 ? '极佳' : total >= 76 ? '优秀' : '一般';
+
+    $('#scoreValue').textContent = total;
+    $('#scoreRing').style.setProperty('--pct', total + '%');
+    $('#scoreDetail').innerHTML =
+      `<b style="color:var(--cyan)">${grade}</b><br>
+       视角 ${Math.round(view)} · 距离 ${Math.round(dist)} · 空间 ${Math.round(space)}<br>
+       综合观众评分 ${$('#userRating').value}/5`;
+  }
+
+  /* ==================== 订单逻辑 ==================== */
+
+  /** 更新侧栏：已选座位列表 + 价格 + 按钮状态 */
+  function updateOrder() {
+    const count = selected.size;
+    $('#selectedList').textContent = count ? labelSeats() : '尚未选择座位';
+    $('#totalPrice').textContent = count * 48;
+    $('#reserveBtn').disabled = count === 0;
+    $('#buyBtn').disabled     = count === 0;
+    $('#step3').classList.toggle('done', count > 0);
+    calcScore();
+  }
+
+  function requireLogin() {
+    if (user()) return true;
+    openAuth();
+    toast('请先登录');
+    return false;
+  }
+
+  /** 创建订单 */
+  function createOrder(status) {
+    if (!requireLogin() || !selected.size) return;
+
+    const o = {
+      id:       'SC' + Date.now().toString().slice(-9),
+      user:     user().name,
+      hall,
+      hallName: halls[hall].name,
+      seats:    [...selected],
+      status,
+      amount:   selected.size * 48,
+      time:     new Date().toLocaleString(),
+    };
+
+    const list = orders();
+    list.unshift(o);
+    write(STORE.orders, list);
+
+    // 购票时标记座位为已售
+    if (status === '已购票') {
+      const sm = soldMap();
+      sm[hall] = [...new Set([...(sm[hall] || []), ...selected])];
+      write(STORE.sold, sm);
+    }
+
+    toast(status === '已购票' ? '购票成功' : '预订成功');
+    makeSeats();
+    renderOrders();
+  }
+
+  /** 取消 / 退票 */
+  function cancelOrder(id) {
+    const list  = orders();
+    const order = list.find(x => x.id === id);
+    if (!order) return;
+
+    if (order.status === '已购票') {
+      const sm = soldMap();
+      sm[order.hall] = (sm[order.hall] || []).filter(x => !order.seats.includes(x));
+      write(STORE.sold, sm);
+      order.status = '已退票';
+    } else {
+      order.status = '已取消';
+    }
+
+    write(STORE.orders, list);
+    toast(order.status);
+    makeSeats();
+    renderOrders();
+  }
+
+  /** 渲染订单列表 */
+  function renderOrders() {
+    const u    = user();
+    const list = orders().filter(o => u && (u.role === 'admin' || o.user === u.name));
+
+    if (!list.length) {
+      $('#orderList').innerHTML = '<div class="sub">暂无订单，完成一次选座后订单会出现在这里。</div>';
+    } else {
+      $('#orderList').innerHTML = list.map(o => `
+        <div class="order">
+          <div><b>${o.hallName}</b><div class="sub">${labelSeats(o.seats)}</div></div>
+          <div>${o.time}</div>
+          <div class="pill">${o.status}</div>
+          <div>¥${o.amount}</div>
+          ${['已预订', '已购票'].includes(o.status)
+            ? `<button data-order="${o.id}">${o.status === '已购票' ? '退票' : '取消预订'}</button>`
+            : '<span></span>'}
+        </div>
+      `).join('');
+
+      // 绑定取消按钮
+      $('#orderList').querySelectorAll('button').forEach(b =>
+        b.onclick = () => cancelOrder(b.dataset.order)
+      );
+    }
+
+    renderAdmin();
+  }
+
+  /* ==================== 管理后台 ==================== */
+  function renderAdmin() {
+    const list  = orders();
+    const users = read(STORE.users, {});
+
+    $('#statUsers').textContent  = Object.keys(users).length - 1;
+    $('#statOrders').textContent = list.filter(o => !['已取消', '已退票'].includes(o.status)).length;
+    $('#statSold').textContent   = Object.values(soldMap()).reduce((n, a) => n + a.length, 0);
+
+    if (list.length) {
+      $('#adminOrders').innerHTML = list.map(o =>
+        `<tr><td>${o.id}</td><td>${o.user}</td><td>${o.hallName}</td><td>${labelSeats(o.seats)}</td><td>${o.status}</td><td>¥${o.amount}</td></tr>`
+      ).join('');
+    } else {
+      $('#adminOrders').innerHTML = '<tr><td colspan="6" class="sub">暂无订单</td></tr>';
+    }
+  }
+
+  /* ==================== 热度地图 ==================== */
+  function drawHeat() {
+    const w = heatCanvas.clientWidth, h = heatCanvas.clientHeight;
+    if (!w) return;
+
+    hctx.clearRect(0, 0, w, h);
+
+    // 银幕标示
+    hctx.fillStyle = '#dbeafe';
+    hctx.textAlign = 'center';
+    hctx.font      = '11px Arial';
+    hctx.fillText('银幕 SCREEN', w / 2, 25);
+    hctx.fillStyle = '#7c8aa5';
+    hctx.fillRect(w * 0.18, 34, w * 0.64, 4);
+
+    // 生成热度数据
+    const H    = halls[heatHall];
+    const temp = [];
+    for (let row = 1; row <= 10; row++) {
+      for (let col = 1; col <= H.cols; col++) {
+        temp.push({ row, col });
+      }
+    }
+    seatGeometry(temp, H, w, h - 30);
+
+    const weekend = heatDay >= 5 ? 12 : 0;
+
+    temp.forEach(s => {
+      const center  = Math.abs(s.col - (H.cols + 1) / 2) / (H.cols / 2);
+      const rowBest = Math.abs(s.row - 6);
+      const noise   = Math.sin((s.row * 17 + s.col * 11 + heatDay * 23)) * 0.08;
+      const heat    = 0.92 - center * 0.42 - rowBest * 0.065 + weekend / 100 + noise;
+
+      // 热力图三色分层
+      hctx.fillStyle = heat > 0.72 ? '#ef4444' : heat > 0.53 ? '#facc15' : '#3b82f6';
+      hctx.globalAlpha = 0.78;
+      roundRect(hctx, s.x - s.r, s.y + 30 - s.r, s.r * 2, s.r * 2, 3);
+      hctx.fill();
+    });
+
+    hctx.globalAlpha = 1;
+  }
+
+  /** 构建日期选择按钮 */
+  function buildWeek() {
+    const names = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    $('#week').innerHTML = names
+      .map((n, i) => `<button data-day="${i}" class="${i === heatDay ? 'active' : ''}">${n}</button>`)
+      .join('');
+
+    $('#week').querySelectorAll('button').forEach(b =>
+      b.onclick = () => {
+        heatDay = +b.dataset.day;
+        buildWeek();
+        drawHeat();
+      }
+    );
+  }
+
+  /* ==================== 认证（登录 / 注册） ==================== */
+  function openAuth() {
+    authMode = 'login';
+    syncAuth();
+    $('#authModal').classList.remove('hidden');
+  }
+
+  function syncAuth() {
+    const reg = authMode === 'register';
+    $('#loginTab').classList.toggle('active', !reg);
+    $('#registerTab').classList.toggle('active', reg);
+    $('#confirmLabel').classList.toggle('hidden', !reg);
+    $('#authConfirm').classList.toggle('hidden', !reg);
+    $('#authSubmit').textContent = reg ? '注册并登录' : '登录';
+    $('#authError').textContent = '';
+  }
+
+  function submitAuth() {
+    const name  = $('#authUser').value.trim();
+    const pass  = $('#authPass').value;
+    const users = read(STORE.users, {});
+
+    if (!name || pass.length < 4) {
+      $('#authError').textContent = '用户名不能为空，密码至少4位';
+      return;
+    }
+
+    if (authMode === 'register') {
+      if (users[name]) {
+        $('#authError').textContent = '用户名已存在';
+        return;
+      }
+      if (pass !== $('#authConfirm').value) {
+        $('#authError').textContent = '两次密码不一致';
+        return;
+      }
+      users[name] = { password: pass, role: 'user', member: true };
+      write(STORE.users, users);
+    } else {
+      if (!users[name] || users[name].password !== pass) {
+        $('#authError').textContent = '用户名或密码错误';
+        return;
+      }
+    }
+
+    write(STORE.session, { name, role: users[name].role });
+    $('#authModal').classList.add('hidden');
+    syncAccount();
+    toast(`欢迎，${name}`);
+  }
+
+  function syncAccount() {
+    const u = user();
+    $('#accountName').textContent = u ? u.name : '访客';
+    $('#accountRole').textContent = u ? (u.role === 'admin' ? '管理员' : '影院会员') : '请登录';
+    $('#avatar').textContent      = u ? u.name.slice(0, 1).toUpperCase() : '访';
+    $('#logoutBtn').textContent   = u ? '退出' : '登录';
+    $('#adminNav').classList.toggle('hidden', !u || u.role !== 'admin');
+    renderOrders();
+  }
+
+  /* ==================== 事件绑定 ==================== */
+
+  // 导航切换
+  $$('.nav button').forEach(b =>
+    b.onclick = () => {
+      if (b.dataset.view !== 'booking' && !requireLogin()) return;
+      $$('.nav button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      $$('.view').forEach(x => x.classList.remove('active'));
+      $(`#view-${b.dataset.view}`).classList.add('active');
+      if (b.dataset.view === 'heat')   setTimeout(resize);
+      if (b.dataset.view === 'orders') renderOrders();
+      if (b.dataset.view === 'admin')  renderAdmin();
+    }
+  );
+
+  // 影厅切换（座位区）
+  $('#hallTabs').querySelectorAll('button').forEach(b =>
+    b.onclick = () => {
+      $('#hallTabs').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      hall = b.dataset.hall;
+      $('#hallTitle').textContent = `${halls[hall].name} · ${halls[hall].cols * 10}座`;
+      scale = 1; offsetX = 0; offsetY = 0;
+      makeSeats();
+      drawSeats();
+    }
+  );
+
+  // 影厅切换（热度图区）
+  $('#heatHallTabs').querySelectorAll('button').forEach(b =>
+    b.onclick = () => {
+      $('#heatHallTabs').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      heatHall = b.dataset.hall;
+      drawHeat();
+    }
+  );
+
+  // 票型切换
+  $('#ticketChoices').querySelectorAll('.choice').forEach(b =>
+    b.onclick = () => {
+      $('#ticketChoices').querySelectorAll('.choice').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      ticket = b.dataset.ticket;
+      $('#groupPerson').classList.toggle('hidden', ticket !== 'group');
+      $('#simplePerson').classList.toggle('hidden', ticket === 'group');
+      if (ticket === 'group') buildMembers();
+    }
+  );
+
+  // 团体成员管理
+  function buildMembers() {
+    const n = Math.max(5, Math.min(20, +$('#groupCount').value || 5));
+    $('#groupCount').value = n;
+    $('#members').innerHTML = Array.from({ length: n }, (_, i) =>
+      `<div class="member-row">
+        <input class="full-input" value="成员${i + 1}" aria-label="成员姓名">
+        <input class="full-input member-age" type="number" min="1" max="120" value="${20 + i % 4}" aria-label="成员年龄">
+        <button aria-label="删除成员">×</button>
+      </div>`
+    ).join('');
+    $('#members').querySelectorAll('button').forEach(b =>
+      b.onclick = () => b.parentElement.remove()
+    );
+  }
+
+  // 主按钮
+  $('#buildMembers').onclick  = buildMembers;
+  $('#recommendBtn').onclick  = recommend;
+  $('#reserveBtn').onclick    = () => createOrder('已预订');
+  $('#buyBtn').onclick        = () => createOrder('已购票');
+  $('#userRating').oninput    = calcScore;
+  $('#clearSeats').onclick    = () => { selected.clear(); recommended.clear(); updateOrder(); drawSeats(); };
+  $('#resetView').onclick     = () => { scale = 1; offsetX = 0; offsetY = 0; drawSeats(); };
+
+  // 座位模式 / 框选模式
+  $('#normalMode').onclick = () => {
+    dragSelect = false;
+    $('#normalMode').classList.add('active');
+    $('#dragMode').classList.remove('active');
+  };
+  $('#dragMode').onclick = () => {
+    dragSelect = true;
+    $('#dragMode').classList.add('active');
+    $('#normalMode').classList.remove('active');
+  };
+
+  // 认证
+  $('#loginTab').onclick    = () => { authMode = 'login'; syncAuth(); };
+  $('#registerTab').onclick = () => { authMode = 'register'; syncAuth(); };
+  $('#authSubmit').onclick  = submitAuth;
+  $('#authPass').onkeydown  = e => { if (e.key === 'Enter') submitAuth(); };
+  $('#logoutBtn').onclick   = () => {
+    if (user()) { localStorage.removeItem(STORE.session); syncAccount(); toast('已退出登录'); }
+    else openAuth();
+  };
+
+  // 无障碍
+  $('#accessBtn').onclick = () => $('#accessPanel').classList.toggle('hidden');
+
+  const acc = read(STORE.access, {});
+  [['largeText',  'large-text'],
+   ['contrast',   'high-contrast'],
+   ['colorblind', 'colorblind']].forEach(([id, cls]) => {
+    const el = $('#' + id);
+    el.checked = !!acc[id];
+    document.body.classList.toggle(cls, el.checked);
+    el.onchange = () => {
+      document.body.classList.toggle(cls, el.checked);
+      const a = read(STORE.access, {});
+      a[id] = el.checked;
+      write(STORE.access, a);
+      resize();
+    };
+  });
+
+  $('#voice').checked = !!acc.voice;
+  $('#voice').onchange = () => {
+    const a = read(STORE.access, {});
+    a.voice = $('#voice').checked;
+    write(STORE.access, a);
+    voice('语音提示已开启');
+  };
+
+  // 管理后台 — 重置数据
+  $('#resetData').onclick = () => {
+    if (confirm('确定重置所有演示订单和售座数据吗？')) {
+      write(STORE.orders, []);
+      write(STORE.sold, {});
+      makeSeats();
+      renderOrders();
+      toast('演示数据已重置');
+    }
+  };
+
+  /* ==================== 启动 ==================== */
+  buildMembers();
+  buildWeek();
+  makeSeats();
+  syncAccount();
+  window.addEventListener('resize', resize);
+  setTimeout(resize, 50);
+  if (user()) $('#authModal').classList.add('hidden');
 })();
 </script>
 </body>
