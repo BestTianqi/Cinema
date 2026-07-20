@@ -115,7 +115,20 @@ body.large-text{--scale:1.18;font-size:19px}body.high-contrast{--bg:#000;--panel
 <div class="modal" id="authModal"><div class="card modal-card"><div class="eyebrow">WELCOME TO SMARTCINEMA</div><h2>登录后开始智能选座</h2><div class="sub">新用户注册即可获得会员资格</div><div class="modal-tabs"><button id="loginTab" class="active">登录</button><button id="registerTab">注册</button></div><label>用户名</label><input class="full-input" id="authUser" autocomplete="username" placeholder="请输入用户名"><label>密码</label><input class="full-input" id="authPass" type="password" autocomplete="current-password" placeholder="请输入密码"><label id="confirmLabel" class="hidden">确认密码</label><input class="full-input hidden" id="authConfirm" type="password" placeholder="再次输入密码"><div class="error" id="authError"></div><button class="primary" id="authSubmit">登录</button><div class="hint">管理员演示账号：admin　密码：admin123<br>普通用户也可直接注册新账号。</div></div></div>
 <div class="toast" id="toast"></div>
 
+<!-- 成员D：架构 + 观影评分 + 订单中心 模块 -->
+<script src="js/config.js"></script>
+<script src="js/utils/eventBus.js"></script>
+<script src="js/utils/geometry.js"></script>
+<script src="js/data/hallConfig.js"></script>
+<script src="js/data/seatData.js"></script>
+<script src="js/data/orderStorage.js"></script>
+<script src="js/engine/scoreEngine.js"></script>
+<script src="js/ui/scorePanel.js"></script>
+<script src="js/ui/orderPanel.js"></script>
+<script src="js/main.js"></script>
+
 <script>
+/* === 内联脚本 — Canvas渲染/交互/推荐/认证（成员A/B/C负责拆分） === */
 (()=>{"use strict";
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const STORE={users:"sc_users",session:"sc_session",orders:"sc_orders",sold:"sc_sold",access:"sc_access"};
