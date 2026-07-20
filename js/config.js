@@ -2,9 +2,9 @@
 window.CinemaConfig = {
   // 影厅预设
   halls: {
-    small:  { name: '星海小厅', cols: 10, rows: 10 },
-    medium: { name: '未来中厅', cols: 20, rows: 10 },
-    large:  { name: '银河大厅', cols: 30, rows: 10 },
+    small:  { name: '星海小厅', cols: 10, rows: 10, groups: [10] },
+    medium: { name: '未来中厅', cols: 20, rows: 10, groups: [5, 10, 5] },
+    large:  { name: '银河大厅', cols: 30, rows: 10, groups: [5, 20, 5] },
   },
   defaultHall: 'small',
 

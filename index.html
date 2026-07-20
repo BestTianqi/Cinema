@@ -1058,9 +1058,9 @@ body.colorblind {
 
   /* ==================== 状态变量 ==================== */
   const halls = {
-    small:  { name: '星海小厅', cols: 10, rows: 10 },
-    medium: { name: '未来中厅', cols: 20, rows: 10 },
-    large:  { name: '银河大厅', cols: 30, rows: 10 },
+    small:  { name: '星海小厅', cols: 10, rows: 10, groups: [10] },
+    medium: { name: '未来中厅', cols: 20, rows: 10, groups: [5, 10, 5] },
+    large:  { name: '银河大厅', cols: 30, rows: 10, groups: [5, 20, 5] },
   };
 
   let hall       = 'small';
@@ -1146,21 +1146,67 @@ body.colorblind {
     updateOrder();
   }
 
-  /** 计算座位 Canvas 坐标（弧形排列） */
+  /** 计算座位 Canvas 坐标（分区、过道与轻微弧形排列） */
   function seatGeometry(seatArr, H, w, h) {
-    const margin   = H.cols > 20 ? 34 : 56;
-    const gap      = (w - margin * 2) / (H.cols - 1 || 1);
-    const baseY    = 48;
-    const rowGap   = (h - 92) / (H.rows - 1 || 1);
-    const size     = Math.max(5, Math.min(13, gap * 0.32));
-    const center   = (H.cols + 1) / 2;
-
+    const margin = w < 560 ? 42 : 60;
+    const baseY = 48;
+    const rowGap = (h - 96) / (H.rows - 1 || 1);
+    const aisleUnits = 1.35;
+    const groups = H.groups || [H.cols];
+    const boundaries = [];
+    groups.slice(0, -1).reduce((sum, size) => {
+      boundaries.push(sum + size);
+      return sum + size;
+    }, 0);
+    const slots = H.cols - 1 + boundaries.length * aisleUnits;
+    const widthScale = H.cols === 10 ? 0.68 : H.cols === 20 ? 0.86 : 0.96;
+    const gap = ((w - margin * 2) * widthScale) / (slots || 1);
     seatArr.forEach(s => {
-      const curve = Math.pow((s.col - center) / (H.cols / 2), 2) * 24;
-      s.x = margin + (s.col - 1) * gap;
-      s.y = baseY + (s.row - 1) * rowGap + curve;
-      s.r = size;
+      const passedAisles = boundaries.filter(boundary => s.col > boundary).length;
+      const localX = (s.col - 1 + passedAisles * aisleUnits - slots / 2) * gap;
+      const normalizedX = localX / ((w - margin * 2) / 2 || 1);
+      s.x = w / 2 + localX;
+      s.y = baseY + (s.row - 1) * rowGap - Math.pow(normalizedX, 2) * 12;
+      s.r = Math.max(5, Math.min(12, gap * 0.36, rowGap * 0.3));
     });
+    return { boundaries };
+  }
+
+  /** 绘制分区过道、银幕中轴线和两侧排号 */
+  function drawHallGuides(meta, H, w, h) {
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 5]);
+    ctx.strokeStyle = '#7f8da33f';
+
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 18);
+    ctx.lineTo(w / 2, h - 26);
+    ctx.stroke();
+
+    meta.boundaries.forEach(boundary => {
+      const left = seats.find(s => s.row === Math.ceil(H.rows / 2) && s.col === boundary);
+      const right = seats.find(s => s.row === Math.ceil(H.rows / 2) && s.col === boundary + 1);
+      if (!left || !right) return;
+      const aisleX = (left.x + right.x) / 2;
+      ctx.beginPath();
+      ctx.moveTo(aisleX, 28);
+      ctx.lineTo(aisleX, h - 24);
+      ctx.stroke();
+    });
+
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#65738c';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let row = 1; row <= H.rows; row++) {
+      const rowSeats = seats.filter(s => s.row === row);
+      if (!rowSeats.length) continue;
+      ctx.fillText(`${row}排`, 20, rowSeats[0].y);
+      ctx.fillText(`${row}排`, w - 20, rowSeats[rowSeats.length - 1].y);
+    }
+    ctx.restore();
   }
 
   /** 绘制座位图主循环 */
@@ -1171,7 +1217,9 @@ body.colorblind {
     ctx.translate(offsetX, offsetY);
     ctx.scale(scale, scale);
 
-    seatGeometry(seats, halls[hall], w, h);
+    const hallConfig = halls[hall];
+    const geometry = seatGeometry(seats, hallConfig, w, h);
+    drawHallGuides(geometry, hallConfig, w, h);
     ctx.font = `${halls[hall].cols > 20 ? 7 : 9}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
