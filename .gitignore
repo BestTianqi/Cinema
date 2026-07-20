@@ -2,6 +2,8 @@
 tmp/
 __pycache__/
 *.pyc
+report_updated.docx
+report_reference_qa.pdf
 
 # Dependencies
 node_modules/
