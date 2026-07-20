@@ -18,7 +18,7 @@ const OrderStorage = (() => {
     return _read(_keys().orders, []);
   }
 
-  function create({ userId, hall, hallName, seatIds, status }) {
+  function create({ userId, hall, hallName, seatIds, status, payMethod = '' }) {
     const order = {
       id: 'SC' + Date.now().toString().slice(-9),
       user: userId,
@@ -26,6 +26,7 @@ const OrderStorage = (() => {
       hallName,
       seats: [...seatIds],
       status,           // "已预订" | "已购票"
+      payMethod,
       amount: seatIds.length * window.CinemaConfig.pricePerSeat,
       time: new Date().toLocaleString(),
     };
