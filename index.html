@@ -590,6 +590,67 @@ button { cursor: pointer; }
 .error { color: #ff858c; font-size: 12px; min-height: 18px; margin-top: 8px; }
 
 
+/* ---- 支付弹窗 ---- */
+.pay-modal .modal-card { width: min(480px, calc(100% - 32px)); padding: 28px; }
+
+/* 订单摘要 */
+.pay-summary {
+  background: #0b111c;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.pay-summary b { color: var(--cyan); }
+
+/* 支付方式选择 */
+.pay-methods {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+.pay-method {
+  background: #0c121e;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 8px 12px;
+  text-align: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: .2s;
+}
+.pay-method:hover { border-color: #4a5568; color: white; }
+.pay-method.active {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan) inset;
+  color: white;
+  background: #102033;
+}
+.pay-method .pay-icon {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 6px;
+}
+.pay-method .pay-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 二维码占位 */
+.pay-qr {
+  text-align: center;
+  margin: 16px 0;
+}
+.pay-qr canvas {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+}
+
 /* ---- Toast 提示 ---- */
 .toast {
   position: fixed;
@@ -1014,6 +1075,55 @@ body.colorblind {
       管理员演示账号：admin　密码：admin123<br>
       普通用户也可直接注册新账号。
     </div>
+  </div>
+</div>
+
+<!-- 支付弹窗 -->
+<div class="modal pay-modal hidden" id="payModal">
+  <div class="card modal-card">
+    <div class="eyebrow">ORDER PAYMENT</div>
+    <h2>确认支付</h2>
+    <div class="sub" id="payOrderSummary"></div>
+
+    <!-- 选择支付方式 -->
+    <div class="section-label">选择支付方式</div>
+    <div class="pay-methods" id="payMethods">
+      <button class="pay-method active" data-pay="wechat">
+        <span class="pay-icon">💚</span>
+        <span class="pay-name">微信支付</span>
+      </button>
+      <button class="pay-method" data-pay="alipay">
+        <span class="pay-icon">💙</span>
+        <span class="pay-name">支付宝</span>
+      </button>
+      <button class="pay-method" data-pay="paypal">
+        <span class="pay-icon">🩵</span>
+        <span class="pay-name">PayPal</span>
+      </button>
+      <button class="pay-method" data-pay="unionpay">
+        <span class="pay-icon">❤️</span>
+        <span class="pay-name">银联云闪付</span>
+      </button>
+      <button class="pay-method" data-pay="applepay">
+        <span class="pay-icon">🖤</span>
+        <span class="pay-name">Apple Pay</span>
+      </button>
+      <button class="pay-method" data-pay="card">
+        <span class="pay-icon">💳</span>
+        <span class="pay-name">银行卡</span>
+      </button>
+    </div>
+
+    <!-- 模拟二维码 -->
+    <div class="pay-qr" id="payQr">
+      <canvas id="qrCanvas" width="140" height="140"></canvas>
+      <div class="sub" style="margin-top:6px">请在手机端完成扫码支付</div>
+    </div>
+
+    <div class="error" id="payError"></div>
+
+    <button class="primary" id="payConfirmBtn">确认支付 ¥<span id="payAmount">0</span></button>
+    <button class="ghost" id="payCancelBtn" style="width:100%;margin-top:10px;text-align:center">取消</button>
   </div>
 </div>
 
@@ -1504,35 +1614,175 @@ body.colorblind {
     return false;
   }
 
-  /** 创建订单 */
+  /** 支付方式（默认微信） */
+  let payMethod = 'wechat';
+
+  /** 待支付订单暂存 */
+  let pendingOrder = null;
+
+  /**
+   * 预订 / 购票 → 弹出支付界面
+   * status: '已预订' 或 '已购票'
+   */
   function createOrder(status) {
     if (!requireLogin() || !selected.size) return;
 
-    const o = {
-      id:       'SC' + Date.now().toString().slice(-9),
-      user:     user().name,
+    // 暂存订单，等支付确认后再正式创建
+    pendingOrder = {
       hall,
       hallName: halls[hall].name,
       seats:    [...selected],
       status,
-      amount:   selected.size * 48,
-      time:     new Date().toLocaleString(),
+      amount:   selected.size * window.CinemaConfig.pricePerSeat,
+    };
+
+    showPayModal();
+  }
+
+  /** 显示支付弹窗 */
+  function showPayModal() {
+    if (!pendingOrder) return;
+
+    payMethod = 'wechat';
+    const o = pendingOrder;
+    const label = labelSeats(o.seats);
+
+    // 摘要
+    $('#payOrderSummary').innerHTML =
+      `<div class="pay-summary">
+         <b>${o.hallName}</b> · ${label}<br>
+         座位数 <b>${o.seats.length}</b> 座 · 单价 <b>¥${window.CinemaConfig.pricePerSeat}</b><br>
+         合计 <b style="font-size:18px">¥${o.amount}</b>
+         <span style="color:var(--muted);margin-left:8px">${o.status === '已购票' ? '直接购票' : '预订后付款'}</span>
+       </div>`;
+
+    $('#payAmount').textContent = o.amount;
+    $('#payError').textContent   = '';
+
+    // 高亮默认支付方式
+    $('#payMethods').querySelectorAll('.pay-method').forEach(el =>
+      el.classList.remove('active')
+    );
+    const defaultBtn = $('#payMethods').querySelector('[data-pay="wechat"]');
+    if (defaultBtn) defaultBtn.classList.add('active');
+
+    $('#payModal').classList.remove('hidden');
+
+    // 生成模拟二维码
+    setTimeout(() => drawQrCode('wechat'), 100);
+  }
+
+  /** 支付方式切换 */
+  function selectPayMethod(method) {
+    payMethod = method;
+    $('#payMethods').querySelectorAll('.pay-method').forEach(el => {
+      el.classList.toggle('active', el.dataset.pay === method);
+    });
+    drawQrCode(method);
+  }
+
+  /** 模拟二维码（Canvas 绘制随机方块图案） */
+  function drawQrCode(method) {
+    const canvas = $('#qrCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const size = 10, gap = 2;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    // 定位图案（左上 / 右上 / 左下 三个大块）
+    const patterns = [[3, 3], [w - 3 * size - 3, 3], [3, h - 3 * size - 3]];
+    patterns.forEach(([px, py]) => {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(px, py, size * 3, size * 3);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(px + gap, py + gap, size * 3 - gap * 2, size * 3 - gap * 2);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(px + gap * 2, py + gap * 2, size, size);
+    });
+
+    // 随机数据块
+    const seed = method.length * 7 + pendingOrder.amount;
+    const rng  = (n) => ((seed * 1103515245 + 12345) >>> 0) % n;
+
+    for (let row = 0; row < Math.floor(h / (size + gap)); row++) {
+      for (let col = 0; col < Math.floor(w / (size + gap)); col++) {
+        const x = col * (size + gap) + 1;
+        const y = row * (size + gap) + 1;
+
+        // 跳过定位图案区域
+        const inPattern = patterns.some(([px, py]) =>
+          x >= px - gap && x <= px + size * 3 + gap &&
+          y >= py - gap && y <= py + size * 3 + gap
+        );
+        if (inPattern) continue;
+
+        if (rng(100) < 38) {
+          ctx.fillStyle = '#222';
+          ctx.fillRect(x, y, size, size);
+        }
+      }
+    }
+
+    // 方法名称
+    const names = {
+      wechat: 'WeChat Pay', alipay: 'Alipay', paypal: 'PayPal',
+      unionpay: 'UnionPay', applepay: 'Apple Pay', card: 'Bank Card',
+    };
+    ctx.fillStyle = '#555';
+    ctx.font = 'bold 9px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(names[method] || method, w / 2, h - 6);
+  }
+
+  /** 确认支付 */
+  function confirmPayment() {
+    if (!pendingOrder) return;
+
+    const o = pendingOrder;
+    payMethod = payMethod || 'wechat';
+
+    // 正式创建订单（记录支付方式）
+    const order = {
+      id:        'SC' + Date.now().toString().slice(-9),
+      user:      user().name,
+      hall:      o.hall,
+      hallName:  o.hallName,
+      seats:     o.seats,
+      status:    o.status === '已购票' ? '已购票' : '已预订',
+      payMethod: payMethod,
+      amount:    o.amount,
+      time:      new Date().toLocaleString(),
     };
 
     const list = orders();
-    list.unshift(o);
+    list.unshift(order);
     write(STORE.orders, list);
 
     // 购票时标记座位为已售
-    if (status === '已购票') {
+    if (order.status === '已购票') {
       const sm = soldMap();
-      sm[hall] = [...new Set([...(sm[hall] || []), ...selected])];
+      sm[o.hall] = [...new Set([...(sm[o.hall] || []), ...o.seats])];
       write(STORE.sold, sm);
     }
 
-    toast(status === '已购票' ? '购票成功' : '预订成功');
+    // 关闭弹窗，清理状态
+    $('#payModal').classList.add('hidden');
+    pendingOrder = null;
+
+    const payNames = { wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal', unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡' };
+    toast(`支付成功（${payNames[payMethod] || payMethod}）· ${order.status === '已购票' ? '已购票' : '已预订'}`);
     makeSeats();
     renderOrders();
+  }
+
+  /** 取消支付 */
+  function cancelPayment() {
+    $('#payModal').classList.add('hidden');
+    pendingOrder = null;
+    toast('已取消支付');
   }
 
   /** 取消 / 退票 */
@@ -1568,7 +1818,7 @@ body.colorblind {
         <div class="order">
           <div><b>${o.hallName}</b><div class="sub">${labelSeats(o.seats)}</div></div>
           <div>${o.time}</div>
-          <div class="pill">${o.status}</div>
+          <div class="pill" style="${o.status === '已购票' ? 'background:#1a2e29;color:#66e4aa' : o.status === '已退票' || o.status === '已取消' ? 'background:#2a1a1a;color:#ff9ea5' : 'background:#1e2a3a;color:#9ab8e8'}">${o.status}${o.payMethod ? ' · ' + ({wechat:'微信',alipay:'支付宝',paypal:'PayPal',unionpay:'云闪付',applepay:'Apple Pay',card:'银行卡'}[o.payMethod]||o.payMethod) : ''}</div>
           <div>¥${o.amount}</div>
           ${['已预订', '已购票'].includes(o.status)
             ? `<button data-order="${o.id}">${o.status === '已购票' ? '退票' : '取消预订'}</button>`
@@ -1793,8 +2043,18 @@ body.colorblind {
   // 主按钮
   $('#buildMembers').onclick  = buildMembers;
   $('#recommendBtn').onclick  = recommend;
+  // 预订 / 购票 → 弹出支付弹窗
   $('#reserveBtn').onclick    = () => createOrder('已预订');
   $('#buyBtn').onclick        = () => createOrder('已购票');
+
+  // 支付方式选择
+  $('#payMethods').querySelectorAll('.pay-method').forEach(b =>
+    b.onclick = () => selectPayMethod(b.dataset.pay)
+  );
+
+  // 支付确认 / 取消
+  $('#payConfirmBtn').onclick = confirmPayment;
+  $('#payCancelBtn').onclick  = cancelPayment;
   $('#userRating').oninput    = calcScore;
   $('#clearSeats').onclick    = () => { selected.clear(); recommended.clear(); updateOrder(); drawSeats(); };
   $('#resetView').onclick     = () => { scale = 1; offsetX = 0; offsetY = 0; drawSeats(); };
