@@ -4,6 +4,8 @@ __pycache__/
 *.pyc
 report_updated.docx
 report_reference_qa.pdf
+best-main-*/
+best-main-*.zip
 
 # Dependencies
 node_modules/
