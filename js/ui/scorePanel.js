@@ -53,10 +53,7 @@ const ScorePanel = (() => {
   function get() { return _currentScore; }
 
   // 监听座位变化
-  EventBus.on('seats:changed', () => {
-    const slider = _el('userRating');
-    refresh(slider ? +slider.value : 5);
-  });
+  EventBus.on('seats:changed', () => refresh(5));
 
   return { refresh, get };
 })();

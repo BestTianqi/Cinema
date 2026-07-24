@@ -345,15 +345,9 @@ button { cursor: pointer; }
 .members { max-height: 110px; overflow: auto; margin-top: 8px; }
 .member-row {
   display: grid;
-  grid-template-columns: 1fr 70px 28px;
+  grid-template-columns: 1fr auto;
   gap: 6px;
   margin-bottom: 6px;
-}
-.member-row button {
-  border: 0;
-  border-radius: 8px;
-  background: #2a1821;
-  color: #ff8b94;
 }
 
 /* 主操作按钮 */
@@ -384,6 +378,63 @@ button { cursor: pointer; }
   color: #9aabc3;
   font-size: 12px;
   line-height: 1.6;
+}
+
+/* 备选方案卡片列表 */
+.option-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.option-card {
+  background: #070d18;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: .15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+.option-card:hover { border-color: #4a5568; }
+.option-card.active {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan) inset;
+  background: #0b1628;
+}
+.opt-tag {
+  min-width: 40px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #1e2a3a;
+  color: var(--muted);
+}
+.opt-tag.best {
+  background: linear-gradient(135deg, #ffd74033, #ff8f0033);
+  color: var(--yellow);
+}
+.opt-seats {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.opt-desc {
+  font-size: 10px;
+  color: var(--muted);
+  min-width: 50px;
+  text-align: right;
+  white-space: nowrap;
 }
 
 /* 评分区域 */
@@ -516,6 +567,64 @@ button { cursor: pointer; }
 }
 .week button.active { background: var(--blue); color: white; }
 
+/* 场景预设卡片 */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.preset-card {
+  background: #0b111c;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.preset-card:hover { border-color: #4a5568; }
+.preset-card b { font-size: 14px; display: block; }
+.preset-card small { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.preset-icon { font-size: 28px; margin-bottom: 2px; }
+.preset-bar {
+  width: 100%; height: 4px;
+  border-radius: 2px; background: #1e2a3a;
+  margin: 4px 0;
+}
+.preset-bar i {
+  display: block; height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--cyan), var(--blue));
+}
+.preset-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 16px;
+  margin-top: 4px;
+  background: linear-gradient(90deg, var(--cyan), #6f8cff);
+  color: #07101a;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+.preset-btn:hover { opacity: .85; }
+.preset-card.applied {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan) inset;
+}
+.preset-info {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #0b111c;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.preset-info b { color: var(--cyan); }
+
 /* 管理后台表格 */
 .admin-table { width: 100%; border-collapse: collapse; }
 .admin-table th, .admin-table td {
@@ -639,16 +748,20 @@ button { cursor: pointer; }
   font-weight: 600;
 }
 
-/* 二维码占位 */
+/* 二维码 */
 .pay-qr {
   text-align: center;
   margin: 16px 0;
 }
-.pay-qr canvas {
+.pay-qr > div {
+  display: inline-block;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fff;
   padding: 10px;
+}
+.pay-qr img {
+  display: block;
 }
 
 /* ---- Toast 提示 ---- */
@@ -719,6 +832,7 @@ body.colorblind {
   .side { display: block; }
   .side > .card { margin-top: 12px; }
   .choices { grid-template-columns: 1fr 1fr; }
+  .preset-grid { grid-template-columns: repeat(2, 1fr); }
   .grid3 { grid-template-columns: 1fr; }
   .heat-layout { grid-template-columns: 1fr; }
   .heat-canvas { height: 430px; }
@@ -845,36 +959,35 @@ body.colorblind {
                 <b>情侣票</b><small>连续双座</small>
               </button>
               <button class="choice" data-ticket="family" data-count="3">
-                <b>家庭票</b><small>中后排连座</small>
+                <b>家庭票</b><small>3-6人连座</small>
               </button>
               <button class="choice" data-ticket="group" data-count="5">
                 <b>团体票</b><small>5-20人同排</small>
               </button>
             </div>
 
-            <!-- 观众信息（单人） -->
-            <div class="section-label">观众信息</div>
-            <div id="simplePerson" class="field">
-              <input id="personName" placeholder="姓名" value="周同学">
-              <input id="personAge" type="number" min="1" max="120" placeholder="年龄" value="22">
+            <!-- 成员信息（不可编辑标签 + 年龄输入） -->
+            <div class="section-label">成员信息</div>
+            <div id="familyCountBox" class="field hidden" style="margin-bottom:6px">
+              <input id="familyCount" type="number" min="3" max="6" value="3">
+              <button class="choice" id="applyFamilyCount">确定人数</button>
             </div>
-
-            <!-- 观众信息（团体） -->
-            <div id="groupPerson" class="hidden">
-              <div class="field">
-                <input id="groupCount" type="number" min="5" max="20" value="5">
-                <button class="choice" id="buildMembers">生成成员</button>
-              </div>
-              <div class="members" id="members"></div>
+            <div id="groupCountBox" class="field hidden" style="margin-bottom:6px">
+              <input id="groupCount" type="number" min="5" max="20" value="5">
+              <button class="choice" id="applyGroupCount">确定人数</button>
             </div>
+            <div class="members" id="memberList"></div>
 
-            <!-- 观影偏好 -->
-            <div class="section-label">观影偏好</div>
-            <select class="full-input" id="preference">
-              <option value="balanced">综合最佳视听</option>
-              <option value="immersive">沉浸感优先</option>
-              <option value="easy">进出方便</option>
-              <option value="quiet">安静区域</option>
+            <!-- 电影类型 -->
+            <div class="section-label">电影类型</div>
+            <select class="full-input" id="movieGenre">
+              <option value="action">动作片</option>
+              <option value="romance">爱情片</option>
+              <option value="horror">恐怖片</option>
+              <option value="animation">动画片</option>
+              <option value="scifi">科幻片</option>
+              <option value="drama">文艺片</option>
+              <option value="documentary">纪录片</option>
             </select>
 
             <!-- 推荐按钮 -->
@@ -884,6 +997,25 @@ body.colorblind {
             <div class="recommend hidden" id="recommendBox">
               <b id="recommendTitle"></b>
               <p id="recommendReason"></p>
+
+              <!-- 三个备选方案 -->
+              <div class="option-list hidden" id="optionList">
+                <div class="option-card active" id="opt1" data-idx="0">
+                  <span class="opt-tag best">最佳</span>
+                  <div class="opt-seats" id="optSeats1"></div>
+                  <div class="opt-desc" id="optDesc1"></div>
+                </div>
+                <div class="option-card" id="opt2" data-idx="1">
+                  <span class="opt-tag">方案B</span>
+                  <div class="opt-seats" id="optSeats2"></div>
+                  <div class="opt-desc" id="optDesc2"></div>
+                </div>
+                <div class="option-card" id="opt3" data-idx="2">
+                  <span class="opt-tag">方案C</span>
+                  <div class="opt-seats" id="optSeats3"></div>
+                  <div class="opt-desc" id="optDesc3"></div>
+                </div>
+              </div>
             </div>
 
             <!-- 体验评分（环形图 + 分项） -->
@@ -901,8 +1033,6 @@ body.colorblind {
           <section class="card mini">
             <h2>2. 确认座位</h2>
             <div class="selected-list" id="selectedList">尚未选择座位</div>
-            <label class="sub">观影后评分（用于综合体验结果）</label>
-            <input class="full-input" id="userRating" type="range" min="1" max="5" value="5">
           </section>
 
           <!-- 第3步：提交订单 -->
@@ -916,10 +1046,9 @@ body.colorblind {
                 <small>合计</small> ¥<span id="totalPrice">0</span>
               </div>
             </div>
-            <button class="primary" id="reserveBtn" disabled>预订座位</button>
             <button class="primary" id="buyBtn" disabled
-                    style="background:linear-gradient(90deg,#a77dff,#6579ff);margin-top:8px">
-              立即购票
+                    style="background:linear-gradient(90deg,#a77dff,#6579ff)">
+              确认购票
             </button>
           </section>
 
@@ -1001,6 +1130,53 @@ body.colorblind {
         <div class="card stat"><span>已售座位</span><strong id="statSold">0</strong></div>
       </div>
 
+      <!-- 场景预设管理 -->
+      <div class="card wide" style="margin-top:14px">
+        <div class="wide-head">
+          <div>
+            <div class="eyebrow">SCENE PRESET</div>
+            <h1>场景预设</h1>
+            <div class="sub">一键设置影厅预设售出状态，模拟真实场景中的选座体验</div>
+          </div>
+        </div>
+
+        <div class="preset-grid">
+          <div class="preset-card" id="preset-weekend">
+            <div class="preset-icon">🎬</div>
+            <b>周末黄金场</b>
+            <small>约 1/3 座位已售 · 中间区域集中抢占</small>
+            <div class="preset-bar"><i style="width:33%"></i></div>
+            <button class="preset-btn" data-preset="weekend">应用预设</button>
+          </div>
+          <div class="preset-card" id="preset-weekday">
+            <div class="preset-icon">📅</div>
+            <b>工作日冷场</b>
+            <small>约 1/5 座位已售 · 边角零散分布</small>
+            <div class="preset-bar"><i style="width:20%"></i></div>
+            <button class="preset-btn" data-preset="weekday">应用预设</button>
+          </div>
+          <div class="preset-card" id="preset-packed">
+            <div class="preset-icon">🔥</div>
+            <b>满场拥挤</b>
+            <small>约 1/2 座位已售 · 中心区几乎售罄</small>
+            <div class="preset-bar"><i style="width:50%"></i></div>
+            <button class="preset-btn" data-preset="packed">应用预设</button>
+          </div>
+          <div class="preset-card" id="preset-clear">
+            <div class="preset-icon">🔄</div>
+            <b>清空预设</b>
+            <small>清除所有已售座位，恢复空场状态</small>
+            <div class="preset-bar"><i style="width:0%"></i></div>
+            <button class="preset-btn" data-preset="clear" style="background:#2a1821;color:#ff9ea5">清空</button>
+          </div>
+        </div>
+
+        <div class="preset-info" id="presetInfo">
+          <span>当前状态：<b id="presetLabel">无预设</b></span>
+          <span>已售座位：<b id="presetSoldCount">0</b> / <b id="presetTotalCount">0</b></span>
+        </div>
+      </div>
+
       <!-- 订单管理表格 -->
       <div class="card wide" style="margin-top:14px">
         <div class="wide-head">
@@ -1020,6 +1196,27 @@ body.colorblind {
             </tr>
           </thead>
           <tbody id="adminOrders"></tbody>
+        </table>
+      </div>
+
+      <!-- 注册用户列表 -->
+      <div class="card wide" style="margin-top:14px">
+        <div class="wide-head">
+          <div>
+            <div class="eyebrow">REGISTERED USERS</div>
+            <h1>注册用户</h1>
+            <div class="sub">所有已注册账号及角色信息</div>
+          </div>
+        </div>
+
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>头像</th><th>用户名</th><th>角色</th>
+              <th>会员状态</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="adminUsers"></tbody>
         </table>
       </div>
     </section>
@@ -1089,34 +1286,34 @@ body.colorblind {
     <div class="section-label">选择支付方式</div>
     <div class="pay-methods" id="payMethods">
       <button class="pay-method active" data-pay="wechat">
-        <span class="pay-icon">💚</span>
+        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#09BB07"/><path d="M8.5 8h2v2h-2zm5 0h2v2h-2zm-3 3h2v2h-2zm-5 0h2v2h-2zm3 3h2v2h-2z" fill="#fff"/></svg></span>
         <span class="pay-name">微信支付</span>
       </button>
       <button class="pay-method" data-pay="alipay">
-        <span class="pay-icon">💙</span>
+        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1677FF"/><text x="12" y="17" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">支</text></svg></span>
         <span class="pay-name">支付宝</span>
       </button>
       <button class="pay-method" data-pay="paypal">
-        <span class="pay-icon">🩵</span>
+        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#003087"/><text x="12" y="16" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">P</text></svg></span>
         <span class="pay-name">PayPal</span>
       </button>
       <button class="pay-method" data-pay="unionpay">
-        <span class="pay-icon">❤️</span>
+        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#E21836"/><rect x="4" y="4" width="7" height="7" rx="1.5" fill="#fff"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="#003D8C"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="#003D8C"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="#009B72"/></svg></span>
         <span class="pay-name">银联云闪付</span>
       </button>
       <button class="pay-method" data-pay="applepay">
-        <span class="pay-icon">🖤</span>
+        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#000"/><path d="M14.5 6.5c.4-.5 1.2-1 2-1 .2 1-.3 1.8-.8 2.3-.5.6-1.3 1-2 1-.2-1 .3-1.8.8-2.3zm1.5 3.5c1 0 2.2.6 3 1.5-.8 1.2-1.8 2-3 2-1 0-1.8-.5-2.5-1 .7-.5 1.5-.5 2.5 0 .3.2.5.3 1 .3.7 0 1.5-.5 2-1-.5-.5-1.5-1-2.5-1-.5 0-1 .2-1.5.5-.3-.5-.5-1-.5-1-.3-.2-.8-.3-1.5-.3 0 0 1.5-.2 2.5 1z" fill="#fff"/></svg></span>
         <span class="pay-name">Apple Pay</span>
       </button>
       <button class="pay-method" data-pay="card">
-        <span class="pay-icon">💳</span>
+        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="4" width="20" height="16" rx="2" fill="#1a1a2e" stroke="#4a5568" stroke-width="1"/><rect x="2" y="8" width="20" height="3" fill="#4a5568"/><text x="19" y="19" text-anchor="end" fill="#94a0b8" font-size="6">••••</text></svg></span>
         <span class="pay-name">银行卡</span>
       </button>
     </div>
 
-    <!-- 模拟二维码 -->
+    <!-- 支付二维码 -->
     <div class="pay-qr" id="payQr">
-      <canvas id="qrCanvas" width="140" height="140"></canvas>
+      <div id="qrCodeBox" style="display:inline-block"></div>
       <div class="sub" style="margin-top:6px">请在手机端完成扫码支付</div>
     </div>
 
@@ -1135,6 +1332,8 @@ body.colorblind {
      JavaScript — 外部模块 + 内联脚本
      ================================================================ -->
 
+<!-- QR 码生成库 -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <!-- 成员D：架构 + 观影评分 + 订单中心（10 个模块） -->
 <script src="js/config.js"></script>
 <script src="js/utils/eventBus.js"></script>
@@ -1186,6 +1385,7 @@ body.colorblind {
   let authMode   = 'login';
   let heatHall   = 'small';
   let heatDay    = 0;
+  let _topCandidates = [];
 
   const canvas     = $('#seatCanvas');
   const ctx        = canvas.getContext('2d');
@@ -1461,90 +1661,214 @@ body.colorblind {
 
   /* ==================== 智能推荐引擎 ==================== */
 
-  /** 年龄 → 推荐排数范围 */
+  /** 年龄类别 → 推荐排数范围 */
   function validRows(ages) {
     let min = 1, max = halls[hall].rows;
-    if (ages.some(a => a < 15)) min = 4;   // 青少年避开前三排
-    if (ages.some(a => a > 60)) max = 7;   // 老年人避开后三排
+    if (ages.some(a => a === 'teen'))   min = 4;   // 青少年避开前三排
+    if (ages.some(a => a === 'senior')) max = 7;   // 老年人避开后三排
     return { min, max };
   }
 
   function recommend() {
     if (!requireLogin()) return;
 
-    // 获取人数和年龄
-    const count = ticket === 'group'
-      ? Math.max(5, Math.min(20, +$('#groupCount').value || 5))
-      : +document.querySelector(`.choice[data-ticket="${ticket}"]`).dataset.count;
+    // 获取人数与年龄类别
+    const ages = $$('#memberList .member-age').map(x => x.value);
+    const count = ages.length;
+    const genre = $('#movieGenre').value;
 
-    const ages = ticket === 'group'
-      ? $$('.member-age').map(x => +x.value || 30)
-      : [+$('#personAge').value || 30];
+    if (!count) { toast('请先选择票型'); return; }
 
     const H = halls[hall];
-    if (count > H.cols) {
-      toast('当前放映厅单排无法容纳，请选择更大的厅');
+    if (count > H.cols * H.rows) {
+      toast('当前放映厅无足够座位');
       return;
     }
 
-    // 目标排数
-    const vr     = validRows(ages);
-    const target = ticket === 'family' ? 7 :
-                   ticket === 'couple' ? 6 :
-                   $('#preference').value === 'immersive' ? 5 : 6;
+    const vr = validRows(ages);
 
-    // 遍历所有可能的同排连续座位组
+    // 电影类型 → 推荐排数 & 居中偏好
+    const genreRules = {
+      action:      { row: 5, centerBias: 1.0 },
+      romance:     { row: 7, centerBias: 0.6 },
+      horror:      { row: 6, centerBias: 0.2 },
+      animation:   { row: 8, centerBias: 0.7 },
+      scifi:       { row: 4, centerBias: 1.0 },
+      drama:       { row: 6, centerBias: 0.6 },
+      documentary: { row: 6, centerBias: 0.5 },
+    };
+    const gRule = genreRules[genre] || genreRules.action;
+    const target = Math.max(1, Math.min(H.rows, gRule.row));
+    const centerWeight = 2.5 * gRule.centerBias;
+    const _score = (seatList) => {
+      if (!seatList.length) return 0;
+      const avgRow = seatList.reduce((a, s) => a + s.row, 0) / seatList.length;
+      const avgCol = seatList.reduce((a, s) => a + s.col, 0) / seatList.length;
+      const rowSpread = Math.max(...seatList.map(s => s.row)) - Math.min(...seatList.map(s => s.row));
+      const colSpread = Math.max(...seatList.map(s => s.col)) - Math.min(...seatList.map(s => s.col));
+      return 100
+        - Math.abs(avgRow - target) * 7
+        - Math.abs(avgCol - (H.cols + 1) / 2) * centerWeight
+        - rowSpread * 5
+        - colSpread * 1.5;
+    };
+
+    const allAvailable = seats.filter(s => !s.sold);
+    if (allAvailable.length < count) {
+      toast('当前放映厅剩余空位不足');
+      return;
+    }
+
     let candidates = [];
+
+    // ====== 阶段1：同排连续 ======
     for (let r = vr.min; r <= vr.max; r++) {
       for (let st = 1; st <= H.cols - count + 1; st++) {
         const group = [];
         for (let c = st; c < st + count; c++) {
           group.push(seats.find(s => s.row === r && s.col === c));
         }
-
         if (group.every(s => s && !s.sold)) {
-          const cntr = st + (count - 1) / 2;
-          const score = 100
-            - Math.abs(r - target) * 7
-            - Math.abs(cntr - (H.cols + 1) / 2) * 2;
-          candidates.push({ group, score });
+          const s = _score(group);
+          candidates.push({ group, score: s + 15, type: 'same-row' });
         }
       }
     }
 
-    candidates.sort((a, b) => b.score - a.score);
+    // ====== 阶段2：相邻排拼合（两排） ======
+    if (count >= 2 && count <= H.cols * 2) {
+      for (let r = vr.min; r < vr.max; r++) {
+        // 在各种分割方式中找最佳
+        for (let split = 1; split < count; split++) {
+          const cntA = split;
+          const cntB = count - split;
+          if (cntA > H.cols || cntB > H.cols) continue;
 
+          // 行 A（前排）中找 cntA 连续空位
+          for (let stA = 1; stA <= H.cols - cntA + 1; stA++) {
+            const groupA = [];
+            for (let c = stA; c < stA + cntA; c++) groupA.push(seats.find(s => s.row === r && s.col === c));
+            if (!groupA.every(s => s && !s.sold)) continue;
+
+            const colRangeA = [stA, stA + cntA - 1];
+
+            // 行 B（后排）中找 cntB 连续空位，且列区间有重叠
+            for (let stB = 1; stB <= H.cols - cntB + 1; stB++) {
+              const colRangeB = [stB, stB + cntB - 1];
+              // 有重叠或紧邻（间距≤1）
+              const overlap = Math.max(0, Math.min(colRangeA[1], colRangeB[1]) - Math.max(colRangeA[0], colRangeB[0]) + 1);
+              const gap = overlap > 0 ? 0 : Math.min(Math.abs(colRangeA[1] - colRangeB[0]), Math.abs(colRangeB[1] - colRangeA[0]));
+              if (gap > 1) continue;
+
+              const groupB = [];
+              for (let c = stB; c < stB + cntB; c++) groupB.push(seats.find(s => s.row === r + 1 && s.col === c));
+              if (!groupB.every(s => s && !s.sold)) continue;
+
+              const group = [...groupA, ...groupB];
+              const s = _score(group);
+              candidates.push({ group, score: s + (overlap > 0 ? 8 : 3), type: 'multi-row' });
+            }
+          }
+        }
+      }
+    }
+
+    // ====== 阶段3：贪心优选（无连续方案时从最优空位中挑） ======
     if (!candidates.length) {
-      toast('没有符合规则的同排连续座位');
+      const scored = allAvailable.map(s => ({
+        seat: s,
+        score: _score([s]),
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      const group = scored.slice(0, count).map(x => x.seat);
+      candidates.push({ group, score: _score(group) - 10, type: 'scattered' });
+    }
+
+    // 取评分最高的前三个方案
+    candidates.sort((a, b) => b.score - a.score);
+    _topCandidates = candidates.slice(0, 3);
+
+    // 渲染备选方案卡片
+    _renderOptions(_topCandidates);
+
+    // 默认选择第1个（最佳）
+    _switchOption(0);
+
+    const best = _topCandidates[0];
+    toast(best.type === 'same-row' ? '智能推荐完成' : best.type === 'multi-row' ? '已推荐前后排组合方案' : '暂无连续座位，已就近推荐');
+  }
+
+  /** 渲染 top-3 备选方案卡片 */
+  function _renderOptions(candidates) {
+    const list = $('#optionList');
+    const box = $('#recommendBox');
+    box.classList.remove('hidden');
+
+    if (candidates.length <= 1) {
+      list.classList.add('hidden');
       return;
     }
 
-    // 应用推荐
+    list.classList.remove('hidden');
+
+    const typeLabels = { 'same-row': '同排连续', 'multi-row': '前后排组合', 'scattered': '就近优选' };
+
+    candidates.forEach((c, i) => {
+      const card = $(`#opt${i + 1}`);
+      if (!card) return;
+
+      if (i < candidates.length) {
+        card.classList.remove('hidden');
+        $(`#optSeats${i + 1}`).textContent = labelSeats(c.group.map(s => s.id));
+        $(`#optDesc${i + 1}`).textContent = `${typeLabels[c.type] || ''} · ${Math.round(c.score)}分`;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+  }
+
+  /** 切换到第 idx 个备选方案（0-based） */
+  function _switchOption(idx) {
+    if (!_topCandidates[idx]) return;
+
+    const candidate = _topCandidates[idx];
+
+    // 更新卡片 active 样式
+    [1, 2, 3].forEach(i => {
+      const card = $(`#opt${i}`);
+      if (card) card.classList.toggle('active', i - 1 === idx);
+    });
+
+    // 应用座位选择
     selected.clear();
     recommended.clear();
-    candidates[0].group.forEach(s => {
+    candidate.group.forEach(s => {
       selected.add(s.id);
       recommended.add(s.id);
     });
 
     // 推荐文案
-    $('#recommendBox').classList.remove('hidden');
-    $('#recommendTitle').textContent = `已推荐 ${labelSeats(candidates[0].group.map(s => s.id))}`;
+    const seatLabel = labelSeats(candidate.group.map(s => s.id));
+    $('#recommendTitle').textContent = `已推荐 ${seatLabel}`;
 
-    let rule;
-    if (ages.some(a => a < 15))       rule = '已避开前三排';
-    else if (ages.some(a => a > 60))  rule = '已避开最后三排';
-    else if (ticket === 'couple')     rule = '中间区域连续双座';
-    else if (ticket === 'family')     rule = '中后排连续座位';
-    else if (ticket === 'group')      rule = '所有成员同排连续';
-    else                              rule = '视角与距离综合最佳';
+    const ages = $$('#memberList .member-age').map(x => x.value);
+    const genre = $('#movieGenre').value;
 
-    $('#recommendReason').textContent =
-      `推荐理由：${rule}，中心视角更自然，周围可用空间充足。你仍可在左侧手动调整。`;
+    const genreNames = { action: '动作片', romance: '爱情片', horror: '恐怖片', animation: '动画片', scifi: '科幻片', drama: '文艺片', documentary: '纪录片' };
+    let rule = `「${genreNames[genre] || genre}」`;
+    if (ages.some(a => a === 'teen'))   rule += ' · 已避开前三排';
+    if (ages.some(a => a === 'senior')) rule += ' · 已避开最后三排';
+
+    const typeLabel = candidate.type === 'same-row'
+      ? '同排连续就座，中心视角更自然'
+      : candidate.type === 'multi-row'
+        ? '前后排就近组合，座位紧密相邻'
+        : '已从最优空位中为您挑选，座位可能较分散';
+
+    $('#recommendReason').textContent = `推荐理由：${rule}${typeLabel}。你仍可在左侧手动调整。`;
     $('#step2').classList.add('done');
     updateOrder();
     drawSeats();
-    toast('智能推荐完成');
   }
 
   /** 座位 id → 人类可读文本 */
@@ -1581,17 +1905,14 @@ body.colorblind {
       n + seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length, 0
     ) * 4);
 
-    const sys   = Math.round(view * 0.4 + dist * 0.35 + space * 0.25);
-    const rating = +$('#userRating').value * 20;
-    const total  = Math.round(sys * 0.8 + rating * 0.2);
-    const grade  = total >= 90 ? '极佳' : total >= 76 ? '优秀' : '一般';
+    const total = Math.round(view * 0.4 + dist * 0.35 + space * 0.25);
+    const grade = total >= 90 ? '极佳' : total >= 76 ? '优秀' : '一般';
 
     $('#scoreValue').textContent = total;
     $('#scoreRing').style.setProperty('--pct', total + '%');
     $('#scoreDetail').innerHTML =
       `<b style="color:var(--cyan)">${grade}</b><br>
-       视角 ${Math.round(view)} · 距离 ${Math.round(dist)} · 空间 ${Math.round(space)}<br>
-       综合观众评分 ${$('#userRating').value}/5`;
+       视角 ${Math.round(view)} · 距离 ${Math.round(dist)} · 空间 ${Math.round(space)}`;
   }
 
   /* ==================== 订单逻辑 ==================== */
@@ -1601,8 +1922,7 @@ body.colorblind {
     const count = selected.size;
     $('#selectedList').textContent = count ? labelSeats() : '尚未选择座位';
     $('#totalPrice').textContent = count * 48;
-    $('#reserveBtn').disabled = count === 0;
-    $('#buyBtn').disabled     = count === 0;
+    $('#buyBtn').disabled = count === 0;
     $('#step3').classList.toggle('done', count > 0);
     calcScore();
   }
@@ -1620,19 +1940,14 @@ body.colorblind {
   /** 待支付订单暂存 */
   let pendingOrder = null;
 
-  /**
-   * 预订 / 购票 → 弹出支付界面
-   * status: '已预订' 或 '已购票'
-   */
-  function createOrder(status) {
+  /** 购票 → 弹出支付界面 */
+  function createOrder() {
     if (!requireLogin() || !selected.size) return;
 
-    // 暂存订单，等支付确认后再正式创建
     pendingOrder = {
       hall,
       hallName: halls[hall].name,
       seats:    [...selected],
-      status,
       amount:   selected.size * window.CinemaConfig.pricePerSeat,
     };
 
@@ -1653,7 +1968,7 @@ body.colorblind {
          <b>${o.hallName}</b> · ${label}<br>
          座位数 <b>${o.seats.length}</b> 座 · 单价 <b>¥${window.CinemaConfig.pricePerSeat}</b><br>
          合计 <b style="font-size:18px">¥${o.amount}</b>
-         <span style="color:var(--muted);margin-left:8px">${o.status === '已购票' ? '直接购票' : '预订后付款'}</span>
+         <span style="color:var(--muted);margin-left:8px">扫码支付后完成购票</span>
        </div>`;
 
     $('#payAmount').textContent = o.amount;
@@ -1668,7 +1983,7 @@ body.colorblind {
 
     $('#payModal').classList.remove('hidden');
 
-    // 生成模拟二维码
+    // 生成二维码
     setTimeout(() => drawQrCode('wechat'), 100);
   }
 
@@ -1681,60 +1996,32 @@ body.colorblind {
     drawQrCode(method);
   }
 
-  /** 模拟二维码（Canvas 绘制随机方块图案） */
+  /** 生成真实二维码（指向清华大学官网） */
   function drawQrCode(method) {
-    const canvas = $('#qrCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
-    const size = 10, gap = 2;
+    const box = document.getElementById('qrCodeBox');
+    if (!box || typeof QRCode === 'undefined') return;
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, w, h);
+    // 清除旧的二维码
+    box.innerHTML = '';
 
-    // 定位图案（左上 / 右上 / 左下 三个大块）
-    const patterns = [[3, 3], [w - 3 * size - 3, 3], [3, h - 3 * size - 3]];
-    patterns.forEach(([px, py]) => {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(px, py, size * 3, size * 3);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(px + gap, py + gap, size * 3 - gap * 2, size * 3 - gap * 2);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(px + gap * 2, py + gap * 2, size, size);
-    });
-
-    // 随机数据块
-    const seed = method.length * 7 + pendingOrder.amount;
-    const rng  = (n) => ((seed * 1103515245 + 12345) >>> 0) % n;
-
-    for (let row = 0; row < Math.floor(h / (size + gap)); row++) {
-      for (let col = 0; col < Math.floor(w / (size + gap)); col++) {
-        const x = col * (size + gap) + 1;
-        const y = row * (size + gap) + 1;
-
-        // 跳过定位图案区域
-        const inPattern = patterns.some(([px, py]) =>
-          x >= px - gap && x <= px + size * 3 + gap &&
-          y >= py - gap && y <= py + size * 3 + gap
-        );
-        if (inPattern) continue;
-
-        if (rng(100) < 38) {
-          ctx.fillStyle = '#222';
-          ctx.fillRect(x, y, size, size);
-        }
-      }
-    }
-
-    // 方法名称
-    const names = {
-      wechat: 'WeChat Pay', alipay: 'Alipay', paypal: 'PayPal',
-      unionpay: 'UnionPay', applepay: 'Apple Pay', card: 'Bank Card',
+    const payNames = {
+      wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal',
+      unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡',
     };
-    ctx.fillStyle = '#555';
-    ctx.font = 'bold 9px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(names[method] || method, w / 2, h - 6);
+    const orderNo = pendingOrder ? 'SC' + Date.now().toString().slice(-9) : '';
+    const amount = pendingOrder ? pendingOrder.amount : 0;
+
+    // 二维码内容：清华大学官网 + 模拟支付信息
+    const qrText = `https://www.tsinghua.edu.cn\n支付方式：${payNames[method] || method}\n金额：¥${amount}`;
+
+    new QRCode(box, {
+      text: qrText,
+      width: 160,
+      height: 160,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
   }
 
   /** 确认支付 */
@@ -1744,14 +2031,13 @@ body.colorblind {
     const o = pendingOrder;
     payMethod = payMethod || 'wechat';
 
-    // 正式创建订单（记录支付方式）
     const order = {
       id:        'SC' + Date.now().toString().slice(-9),
       user:      user().name,
       hall:      o.hall,
       hallName:  o.hallName,
       seats:     o.seats,
-      status:    o.status === '已购票' ? '已购票' : '已预订',
+      status:    '已购票',
       payMethod: payMethod,
       amount:    o.amount,
       time:      new Date().toLocaleString(),
@@ -1761,19 +2047,16 @@ body.colorblind {
     list.unshift(order);
     write(STORE.orders, list);
 
-    // 购票时标记座位为已售
-    if (order.status === '已购票') {
-      const sm = soldMap();
-      sm[o.hall] = [...new Set([...(sm[o.hall] || []), ...o.seats])];
-      write(STORE.sold, sm);
-    }
+    // 标记座位为已售
+    const sm = soldMap();
+    sm[o.hall] = [...new Set([...(sm[o.hall] || []), ...o.seats])];
+    write(STORE.sold, sm);
 
-    // 关闭弹窗，清理状态
     $('#payModal').classList.add('hidden');
     pendingOrder = null;
 
     const payNames = { wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal', unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡' };
-    toast(`支付成功（${payNames[payMethod] || payMethod}）· ${order.status === '已购票' ? '已购票' : '已预订'}`);
+    toast(`支付成功（${payNames[payMethod] || payMethod}）· 已购票`);
     makeSeats();
     renderOrders();
   }
@@ -1785,23 +2068,20 @@ body.colorblind {
     toast('已取消支付');
   }
 
-  /** 取消 / 退票 */
-  function cancelOrder(id) {
+  /** 退票 */
+  function refundOrder(id) {
     const list  = orders();
     const order = list.find(x => x.id === id);
     if (!order) return;
 
-    if (order.status === '已购票') {
-      const sm = soldMap();
-      sm[order.hall] = (sm[order.hall] || []).filter(x => !order.seats.includes(x));
-      write(STORE.sold, sm);
-      order.status = '已退票';
-    } else {
-      order.status = '已取消';
-    }
+    // 释放座位
+    const sm = soldMap();
+    sm[order.hall] = (sm[order.hall] || []).filter(x => !order.seats.includes(x));
+    write(STORE.sold, sm);
+    order.status = '已退票';
 
     write(STORE.orders, list);
-    toast(order.status);
+    toast('已退票');
     makeSeats();
     renderOrders();
   }
@@ -1818,17 +2098,16 @@ body.colorblind {
         <div class="order">
           <div><b>${o.hallName}</b><div class="sub">${labelSeats(o.seats)}</div></div>
           <div>${o.time}</div>
-          <div class="pill" style="${o.status === '已购票' ? 'background:#1a2e29;color:#66e4aa' : o.status === '已退票' || o.status === '已取消' ? 'background:#2a1a1a;color:#ff9ea5' : 'background:#1e2a3a;color:#9ab8e8'}">${o.status}${o.payMethod ? ' · ' + ({wechat:'微信',alipay:'支付宝',paypal:'PayPal',unionpay:'云闪付',applepay:'Apple Pay',card:'银行卡'}[o.payMethod]||o.payMethod) : ''}</div>
+          <div class="pill" style="${o.status === '已购票' ? 'background:#1a2e29;color:#66e4aa' : 'background:#2a1a1a;color:#ff9ea5'}">${o.status}${o.payMethod ? ' · ' + ({wechat:'微信',alipay:'支付宝',paypal:'PayPal',unionpay:'云闪付',applepay:'Apple Pay',card:'银行卡'}[o.payMethod]||o.payMethod) : ''}</div>
           <div>¥${o.amount}</div>
-          ${['已预订', '已购票'].includes(o.status)
-            ? `<button data-order="${o.id}">${o.status === '已购票' ? '退票' : '取消预订'}</button>`
+          ${o.status === '已购票'
+            ? '<button data-order="' + o.id + '">退票</button>'
             : '<span></span>'}
         </div>
       `).join('');
 
-      // 绑定取消按钮
       $('#orderList').querySelectorAll('button').forEach(b =>
-        b.onclick = () => cancelOrder(b.dataset.order)
+        b.onclick = () => refundOrder(b.dataset.order)
       );
     }
 
@@ -1839,17 +2118,48 @@ body.colorblind {
   function renderAdmin() {
     const list  = orders();
     const users = read(STORE.users, {});
+    const userCount = Object.keys(users).length - 1; // 排除默认 admin
 
-    $('#statUsers').textContent  = Object.keys(users).length - 1;
-    $('#statOrders').textContent = list.filter(o => !['已取消', '已退票'].includes(o.status)).length;
+    $('#statUsers').textContent  = userCount;
+    $('#statOrders').textContent = list.filter(o => o.status === '已购票').length;
     $('#statSold').textContent   = Object.values(soldMap()).reduce((n, a) => n + a.length, 0);
 
+    // 订单表格
     if (list.length) {
       $('#adminOrders').innerHTML = list.map(o =>
         `<tr><td>${o.id}</td><td>${o.user}</td><td>${o.hallName}</td><td>${labelSeats(o.seats)}</td><td>${o.status}</td><td>¥${o.amount}</td></tr>`
       ).join('');
     } else {
       $('#adminOrders').innerHTML = '<tr><td colspan="6" class="sub">暂无订单</td></tr>';
+    }
+
+    // 用户列表（排除默认 admin，排除空 key）
+    const userList = Object.entries(users).filter(([name]) => name !== 'admin' && name);
+
+    if (userList.length) {
+      const roleBadge = role => role === 'admin'
+        ? '<span style="color:var(--cyan);font-weight:700">管理员</span>'
+        : '<span style="color:#aab5c9">普通会员</span>';
+
+      $('#adminUsers').innerHTML = userList
+        .sort((a, b) => a[0].localeCompare(b[0], 'zh'))
+        .map(([name, info]) => {
+          const initial = name.slice(0, 1).toUpperCase();
+          const avatarBg = info.role === 'admin'
+            ? 'linear-gradient(135deg,var(--cyan),var(--blue))'
+            : 'linear-gradient(135deg,var(--purple),#555)';
+          const orderCount = list.filter(o => o.user === name && o.status === '已购票').length;
+
+          return `<tr>
+            <td><div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff">${initial}</div></td>
+            <td><b>${name}</b><div class="sub">${orderCount} 笔有效订单</div></td>
+            <td>${roleBadge(info.role)}</td>
+            <td>${info.member ? '<span style="color:var(--green)">已激活</span>' : '<span style="color:var(--muted)">未激活</span>'}</td>
+            <td>—</td>
+          </tr>`;
+        }).join('');
+    } else {
+      $('#adminUsers').innerHTML = '<tr><td colspan="5" class="sub">暂无注册用户</td></tr>';
     }
   }
 
@@ -1983,9 +2293,10 @@ body.colorblind {
       b.classList.add('active');
       $$('.view').forEach(x => x.classList.remove('active'));
       $(`#view-${b.dataset.view}`).classList.add('active');
-      if (b.dataset.view === 'heat')   setTimeout(resize);
-      if (b.dataset.view === 'orders') renderOrders();
-      if (b.dataset.view === 'admin')  renderAdmin();
+      if (b.dataset.view === 'booking') setTimeout(resize);  // 切回选座→重绘Canvas
+      if (b.dataset.view === 'heat')    setTimeout(resize);
+      if (b.dataset.view === 'orders')  renderOrders();
+      if (b.dataset.view === 'admin')   renderAdmin();
     }
   );
 
@@ -2012,40 +2323,50 @@ body.colorblind {
     }
   );
 
-  // 票型切换
+  // ====== 票型切换与成员列表 ======
+  function buildMemberList(n) {
+    const defaultCat = i => i < 2 ? 'adult' : i === 2 ? 'teen' : 'senior';
+    $('#memberList').innerHTML = Array.from({ length: n }, (_, i) =>
+      `<div class="member-row">
+        <span style="color:#b6c2d8;line-height:38px;white-space:nowrap">成员${i + 1}</span>
+        <select class="full-input member-age" aria-label="年龄类别">
+          <option value="teen" ${defaultCat(i) === 'teen' ? 'selected' : ''}>青少年</option>
+          <option value="adult" ${defaultCat(i) === 'adult' ? 'selected' : ''}>成年人</option>
+          <option value="senior" ${defaultCat(i) === 'senior' ? 'selected' : ''}>老年人</option>
+        </select>
+      </div>`
+    ).join('');
+  }
+
   $('#ticketChoices').querySelectorAll('.choice').forEach(b =>
     b.onclick = () => {
       $('#ticketChoices').querySelectorAll('.choice').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
       ticket = b.dataset.ticket;
-      $('#groupPerson').classList.toggle('hidden', ticket !== 'group');
-      $('#simplePerson').classList.toggle('hidden', ticket === 'group');
-      if (ticket === 'group') buildMembers();
+      const fixed = +b.dataset.count;
+      $('#familyCountBox').classList.toggle('hidden', ticket !== 'family');
+      $('#groupCountBox').classList.toggle('hidden', ticket !== 'group');
+      if (ticket === 'family') {
+        buildMemberList(+$('#familyCount').value || 3);
+      } else if (ticket === 'group') {
+        buildMemberList(+$('#groupCount').value || 5);
+      } else {
+        buildMemberList(fixed);
+      }
     }
   );
 
-  // 团体成员管理
-  function buildMembers() {
-    const n = Math.max(5, Math.min(20, +$('#groupCount').value || 5));
-    $('#groupCount').value = n;
-    $('#members').innerHTML = Array.from({ length: n }, (_, i) =>
-      `<div class="member-row">
-        <input class="full-input" value="成员${i + 1}" aria-label="成员姓名">
-        <input class="full-input member-age" type="number" min="1" max="120" value="${20 + i % 4}" aria-label="成员年龄">
-        <button aria-label="删除成员">×</button>
-      </div>`
-    ).join('');
-    $('#members').querySelectorAll('button').forEach(b =>
-      b.onclick = () => b.parentElement.remove()
-    );
-  }
+  $('#applyFamilyCount').onclick = () => buildMemberList(Math.max(3, Math.min(6, +$('#familyCount').value || 3)));
+  $('#applyGroupCount').onclick  = () => buildMemberList(Math.max(5, Math.min(20, +$('#groupCount').value || 5)));
 
   // 主按钮
-  $('#buildMembers').onclick  = buildMembers;
   $('#recommendBtn').onclick  = recommend;
+  // 备选方案卡片点击切换
+  $('#opt1').onclick = () => _switchOption(0);
+  $('#opt2').onclick = () => _switchOption(1);
+  $('#opt3').onclick = () => _switchOption(2);
   // 预订 / 购票 → 弹出支付弹窗
-  $('#reserveBtn').onclick    = () => createOrder('已预订');
-  $('#buyBtn').onclick        = () => createOrder('已购票');
+  $('#buyBtn').onclick = createOrder;
 
   // 支付方式选择
   $('#payMethods').querySelectorAll('.pay-method').forEach(b =>
@@ -2055,7 +2376,6 @@ body.colorblind {
   // 支付确认 / 取消
   $('#payConfirmBtn').onclick = confirmPayment;
   $('#payCancelBtn').onclick  = cancelPayment;
-  $('#userRating').oninput    = calcScore;
   $('#clearSeats').onclick    = () => { selected.clear(); recommended.clear(); updateOrder(); drawSeats(); };
   $('#resetView').onclick     = () => { scale = 1; offsetX = 0; offsetY = 0; drawSeats(); };
 
@@ -2113,14 +2433,107 @@ body.colorblind {
     if (confirm('确定重置所有演示订单和售座数据吗？')) {
       write(STORE.orders, []);
       write(STORE.sold, {});
+      _currentPreset = null;
+      _updatePresetUI();
       makeSeats();
       renderOrders();
       toast('演示数据已重置');
     }
   };
 
+  // ========== 场景预设 ==========
+  let _currentPreset = null;
+
+  /** 按预设模式生成单个影厅的已售座位 id 列表 */
+  function _generatePresetForHall(mode, H, hallKey) {
+    const total = H.cols * H.rows;
+    const soldIds = [];
+    const centerCol = (H.cols + 1) / 2;
+    const midRow = Math.ceil(H.rows / 2);
+
+    // 不同影厅 + 不同模式的种子，保证可复现
+    const seeds = { weekend: 42, packed: 77, weekday: 13 };
+    let seed = (seeds[mode] || 42) + H.cols * 100 + H.rows * 7 + (hallKey.charCodeAt(0) || 0) * 31;
+    const rng = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };
+
+    const target = mode === 'weekend' ? Math.floor(total * 0.32) :
+                   mode === 'packed'  ? Math.floor(total * 0.48) :
+                                        Math.floor(total * 0.20);
+
+    const scored = [];
+    for (let row = 1; row <= H.rows; row++) {
+      for (let col = 1; col <= H.cols; col++) {
+        const centerBonus  = 1 - Math.abs(col - centerCol) / (H.cols / 2) * 0.7;
+        const rowBonus     = 1 - Math.abs(row - midRow) / (H.rows / 2) * 0.5;
+        const priority     = mode === 'weekend' ? centerBonus * 0.7 + rowBonus * 0.3 + rng() * 0.3 :
+                             mode === 'packed'  ? centerBonus * 0.8 + rowBonus * 0.4 + rng() * 0.2 :
+                                                   rng(); // 工作日随机
+        scored.push({ id: `${row}-${col}`, priority });
+      }
+    }
+
+    scored.sort((a, b) => b.priority - a.priority);
+    for (let i = 0; i < target; i++) soldIds.push(scored[i].id);
+
+    return soldIds;
+  }
+
+  /** 应用场景预设 — 三个影厅同时生效 */
+  function _applyPreset(mode) {
+    if (mode === 'clear') {
+      write(STORE.sold, {});
+      _currentPreset = null;
+    } else {
+      const sm = soldMap();
+      // 遍历全部三个影厅，各自生成预设
+      Object.entries(halls).forEach(([key, H]) => {
+        sm[key] = _generatePresetForHall(mode, H, key);
+      });
+      write(STORE.sold, sm);
+      _currentPreset = mode;
+    }
+    _updatePresetUI();
+    makeSeats();
+    drawSeats();
+    renderOrders();
+  }
+
+  /** 刷新预设卡片状态和信息栏 */
+  function _updatePresetUI() {
+    const labels = { weekend: '周末黄金场', weekday: '工作日冷场', packed: '满场拥挤' };
+
+    // 高亮当前预设卡片
+    document.querySelectorAll('#view-admin .preset-card').forEach(c =>
+      c.classList.toggle('applied', c.id === `preset-${_currentPreset}`)
+    );
+
+    // 信息栏 — 显示三个影厅总已售数
+    const sm = soldMap();
+    const totalSold = Object.values(sm).reduce((n, arr) => n + arr.length, 0);
+    const totalAll = Object.values(halls).reduce((n, H) => n + H.cols * H.rows, 0);
+    const label = _currentPreset ? labels[_currentPreset] : '无预设';
+    const el = document.getElementById('presetLabel');
+    if (el) el.textContent = label;
+    const soldEl = document.getElementById('presetSoldCount');
+    if (soldEl) soldEl.textContent = totalSold;
+    const totalEl = document.getElementById('presetTotalCount');
+    if (totalEl) totalEl.textContent = totalAll;
+  }
+
+  // 预设按钮事件绑定
+  document.querySelectorAll('#view-admin .preset-btn').forEach(b =>
+    b.onclick = () => _applyPreset(b.dataset.preset)
+  );
+
+  // 更新 renderAdmin 中也刷新预设信息
+  const _origRenderAdmin = renderAdmin;
+  renderAdmin = function () {
+    _origRenderAdmin();
+    _updatePresetUI();
+  };
+
   /* ==================== 启动 ==================== */
-  buildMembers();
+  buildMemberList(1);
   buildWeek();
   makeSeats();
   syncAccount();

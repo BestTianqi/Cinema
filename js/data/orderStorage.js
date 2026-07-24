@@ -25,7 +25,7 @@ const OrderStorage = (() => {
       hall,
       hallName,
       seats: [...seatIds],
-      status,           // "已预订" | "已购票"
+      status,           // "已购票"
       payMethod,
       amount: seatIds.length * window.CinemaConfig.pricePerSeat,
       time: new Date().toLocaleString(),
@@ -44,13 +44,9 @@ const OrderStorage = (() => {
     const order = list.find(o => o.id === orderId);
     if (!order) return null;
 
-    if (order.status === '已购票') {
-      // 退票 → 释放座位
-      _releaseSold(order.hall, order.seats);
-      order.status = '已退票';
-    } else {
-      order.status = '已取消';
-    }
+    // 退票 → 释放座位
+    _releaseSold(order.hall, order.seats);
+    order.status = '已退票';
     _write(_keys().orders, list);
     return order;
   }
@@ -94,7 +90,7 @@ const OrderStorage = (() => {
 
   /** 统计有效订单数 */
   function activeCount() {
-    return allOrders().filter(o => !['已取消', '已退票'].includes(o.status)).length;
+    return allOrders().filter(o => o.status === '已购票').length;
   }
 
   return {

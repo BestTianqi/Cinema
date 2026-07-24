@@ -54,15 +54,12 @@ const OrderPanel = (() => {
     return order;
   }
 
-  /** 取消订单 */
+  /** 退票 */
   function cancelOrder(orderId) {
     const result = OrderStorage.cancel(orderId);
     if (!result) return;
 
-    // 座位状态需要重载
-    if (result.status === '已退票' || result.status === '已取消') {
-      SeatData.build(HallConfig.get().key);
-    }
+    SeatData.build(HallConfig.get().key);
     EventBus.emit('order:cancelled', result);
     EventBus.emit('seats:changed');
   }
@@ -88,14 +85,14 @@ const OrderPanel = (() => {
         .sort((a, b) => { const [x, y] = a.split('-').map(Number); const [m, n] = b.split('-').map(Number); return x - m || y - n; })
         .map(x => { const [r, c] = x.split('-'); return `${r}排${c}座`; })
         .join('、');
-      const canCancel = ['已预订', '已购票'].includes(o.status);
+      const canRefund = o.status === '已购票';
 
       return `<div class="order">
         <div><b>${o.hallName}</b><div class="sub">${label}</div></div>
         <div>${o.time}</div>
         <div class="pill">${o.status}</div>
         <div>¥${o.amount}</div>
-        ${canCancel ? `<button data-order-id="${o.id}">${o.status === '已购票' ? '退票' : '取消预订'}</button>` : '<span></span>'}
+        ${canRefund ? `<button data-order-id="${o.id}">退票</button>` : '<span></span>'}
       </div>`;
     });
 

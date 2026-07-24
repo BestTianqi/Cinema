@@ -25,25 +25,18 @@
   // ==================== 评分联动 ====================
   /** 当座位选择变化时重新评分 */
   function onSeatsChanged() {
-    ScorePanel.refresh(userRatingValue());
+    ScorePanel.refresh(5);
     OrderPanel.refreshSelection();
 
     // 同步 DOM（与内联脚本兼容）
     const count = SeatData.selectedCount();
-    const resBtn = document.getElementById('reserveBtn');
     const buyBtn = document.getElementById('buyBtn');
     const step3 = document.getElementById('step3');
     const step2 = document.getElementById('step2');
 
-    if (resBtn) resBtn.disabled = count === 0;
     if (buyBtn) buyBtn.disabled = count === 0;
     if (step3) step3.classList.toggle('done', count > 0);
     if (step2) step2.classList.toggle('done', count > 0);
-  }
-
-  function userRatingValue() {
-    const el = document.getElementById('userRating');
-    return el ? +el.value : 5;
   }
 
   // ==================== 订单联动 ====================
@@ -81,16 +74,6 @@
     EventBus.emit('seats:changed');
   });
 
-  // 用户评分滑块变化 → 重算
-  document.addEventListener('DOMContentLoaded', () => {
-    const slider = document.getElementById('userRating');
-    if (slider) {
-      slider.addEventListener('input', () => {
-        ScorePanel.refresh(+slider.value);
-      });
-    }
-  });
-
   // ==================== 初始启动 ====================
   initHall(cfg.defaultHall);
   OrderPanel.renderOrderList();
@@ -109,7 +92,7 @@
 
     // 评分
     getScore: () => ScorePanel.get(),
-    refreshScore: () => ScorePanel.refresh(userRatingValue()),
+    refreshScore: () => ScorePanel.refresh(5),
     explain: (result) => ScoreEngine.explain(result),
 
     // 订单
