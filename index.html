@@ -1286,27 +1286,27 @@ body.colorblind {
     <div class="section-label">选择支付方式</div>
     <div class="pay-methods" id="payMethods">
       <button class="pay-method active" data-pay="wechat">
-        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#09BB07"/><path d="M8.5 8h2v2h-2zm5 0h2v2h-2zm-3 3h2v2h-2zm-5 0h2v2h-2zm3 3h2v2h-2z" fill="#fff"/></svg></span>
+        <span class="pay-icon"><img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/wechat.svg" width="28" height="28" alt="微信支付" style="filter:invert(1)"></span>
         <span class="pay-name">微信支付</span>
       </button>
       <button class="pay-method" data-pay="alipay">
-        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1677FF"/><text x="12" y="17" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">支</text></svg></span>
+        <span class="pay-icon"><img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/alipay.svg" width="28" height="28" alt="支付宝" style="filter:invert(1)"></span>
         <span class="pay-name">支付宝</span>
       </button>
       <button class="pay-method" data-pay="paypal">
-        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#003087"/><text x="12" y="16" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">P</text></svg></span>
+        <span class="pay-icon"><img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/paypal.svg" width="28" height="28" alt="PayPal" style="filter:invert(1)"></span>
         <span class="pay-name">PayPal</span>
       </button>
       <button class="pay-method" data-pay="unionpay">
-        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#E21836"/><rect x="4" y="4" width="7" height="7" rx="1.5" fill="#fff"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="#003D8C"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="#003D8C"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="#009B72"/></svg></span>
+        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect width="24" height="24" rx="5" fill="#E21836"/><text x="12" y="16" text-anchor="middle" fill="#fff" font-size="7" font-weight="bold">Union</text><text x="12" y="21" text-anchor="middle" fill="#fff" font-size="7" font-weight="bold">Pay</text></svg></span>
         <span class="pay-name">银联云闪付</span>
       </button>
       <button class="pay-method" data-pay="applepay">
-        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="2" width="20" height="20" rx="4" fill="#000"/><path d="M14.5 6.5c.4-.5 1.2-1 2-1 .2 1-.3 1.8-.8 2.3-.5.6-1.3 1-2 1-.2-1 .3-1.8.8-2.3zm1.5 3.5c1 0 2.2.6 3 1.5-.8 1.2-1.8 2-3 2-1 0-1.8-.5-2.5-1 .7-.5 1.5-.5 2.5 0 .3.2.5.3 1 .3.7 0 1.5-.5 2-1-.5-.5-1.5-1-2.5-1-.5 0-1 .2-1.5.5-.3-.5-.5-1-.5-1-.3-.2-.8-.3-1.5-.3 0 0 1.5-.2 2.5 1z" fill="#fff"/></svg></span>
+        <span class="pay-icon"><img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/applepay.svg" width="28" height="28" alt="Apple Pay" style="filter:invert(1)"></span>
         <span class="pay-name">Apple Pay</span>
       </button>
       <button class="pay-method" data-pay="card">
-        <span class="pay-icon"><svg viewBox="0 0 24 24" width="28" height="28"><rect x="2" y="4" width="20" height="16" rx="2" fill="#1a1a2e" stroke="#4a5568" stroke-width="1"/><rect x="2" y="8" width="20" height="3" fill="#4a5568"/><text x="19" y="19" text-anchor="end" fill="#94a0b8" font-size="6">••••</text></svg></span>
+        <span class="pay-icon"><img src="https://cdn.jsdelivr.net/npm/simple-icons@13/icons/visa.svg" width="28" height="28" alt="银行卡" style="filter:invert(1)"></span>
         <span class="pay-name">银行卡</span>
       </button>
     </div>
@@ -1332,8 +1332,6 @@ body.colorblind {
      JavaScript — 外部模块 + 内联脚本
      ================================================================ -->
 
-<!-- QR 码生成库 -->
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <!-- 成员D：架构 + 观影评分 + 订单中心（10 个模块） -->
 <script src="js/config.js"></script>
 <script src="js/utils/eventBus.js"></script>
@@ -1982,9 +1980,7 @@ body.colorblind {
     if (defaultBtn) defaultBtn.classList.add('active');
 
     $('#payModal').classList.remove('hidden');
-
-    // 生成二维码
-    setTimeout(() => drawQrCode('wechat'), 100);
+    renderQrCode('wechat');
   }
 
   /** 支付方式切换 */
@@ -1993,35 +1989,49 @@ body.colorblind {
     $('#payMethods').querySelectorAll('.pay-method').forEach(el => {
       el.classList.toggle('active', el.dataset.pay === method);
     });
-    drawQrCode(method);
+    renderQrCode(method);
   }
 
-  /** 生成真实二维码（指向清华大学官网） */
-  function drawQrCode(method) {
+  /** 生成各支付方式对应的装饰二维码（21x21 网格 + 定位图案） */
+  function renderQrCode(method) {
     const box = document.getElementById('qrCodeBox');
-    if (!box || typeof QRCode === 'undefined') return;
+    if (!box) return;
+    const S = 21, C = 7, G = 3, W = S * C + G * 2;
 
-    // 清除旧的二维码
-    box.innerHTML = '';
+    // 用 method 名做 hash 种子
+    let h = 0;
+    for (let i = 0; i < method.length; i++) h = ((h << 5) - h + method.charCodeAt(i)) | 0;
 
-    const payNames = {
-      wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal',
-      unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡',
-    };
-    const orderNo = pendingOrder ? 'SC' + Date.now().toString().slice(-9) : '';
-    const amount = pendingOrder ? pendingOrder.amount : 0;
-
-    // 二维码内容：清华大学官网 + 模拟支付信息
-    const qrText = `https://www.tsinghua.edu.cn\n支付方式：${payNames[method] || method}\n金额：¥${amount}`;
-
-    new QRCode(box, {
-      text: qrText,
-      width: 160,
-      height: 160,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M,
+    // 三个 7x7 定位图案
+    const fp = new Set();
+    const corners = [[0, 0], [S - 7, 0], [0, S - 7]];
+    corners.forEach(([ox, oy]) => {
+      for (let dy = 0; dy < 7; dy++)
+        for (let dx = 0; dx < 7; dx++)
+          if (dy === 0 || dy === 6 || dx === 0 || dx === 6 || (dy >= 2 && dy <= 4 && dx >= 2 && dx <= 4))
+            fp.add(`${ox + dx},${oy + dy}`);
     });
+
+    // 时序线（横纵各一条，间隔填充）
+    for (let i = 8; i < S - 8; i++) {
+      if (i % 2 === 0) { fp.add(`${i},6`); fp.add(`6,${i}`); }
+    }
+
+    // 伪随机填充数据区
+    const bits = [];
+    for (let i = 0; i < 32; i++) { h = ((h << 7) ^ (h >>> 25)) * 0x5bd1e995; bits.push(Math.abs(h)); }
+    let bi = 0, bx = 0;
+    function nb() { if (bx >= 32) { bi++; bx = 0; } return (bits[bi] >>> bx++) & 1; }
+
+    let cells = '';
+    for (let y = 0; y < S; y++)
+      for (let x = 0; x < S; x++)
+        if (!fp.has(`${x},${y}`) && nb()) cells += `<rect x="${G + x * C}" y="${G + y * C}" width="${C}" height="${C}"/>`;
+
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${W}" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${W}" height="${W}" rx="8" fill="#fff"/>
+      <g fill="#000">${[...fp].map(k => { const [x, y] = k.split(','); return `<rect x="${G + +x * C}" y="${G + +y * C}" width="${C}" height="${C}"/>`; }).join('')}${cells}</g>
+    </svg>`;
   }
 
   /** 确认支付 */
