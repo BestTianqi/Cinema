@@ -898,7 +898,7 @@ body.colorblind {
             <div>
               <div class="eyebrow">SMART SEAT MAP</div>
               <h1 id="hallTitle">星海小厅 · 100座</h1>
-              <div class="sub">Canvas 弧形座位图 · 点击单选 · Ctrl 多选 · 拖拽框选</div>
+              <div class="sub">Canvas 弧形座位图 · 拖拽框选</div>
             </div>
 
             <!-- 影厅切换 -->
@@ -1662,21 +1662,12 @@ body.colorblind {
 
   /* ==================== 智能推荐引擎 ==================== */
 
-  /** 年龄类别 → 推荐排数范围 */
-  function validRows(ages) {
-    let min = 1, max = halls[hall].rows;
-    if (ages.some(a => a === 'teen'))   min = 4;   // 青少年避开前三排
-    if (ages.some(a => a === 'senior')) max = 7;   // 老年人避开后三排
-    return { min, max };
-  }
-
   function recommend() {
     if (!requireLogin()) return;
 
     // 获取人数与年龄类别
     const ages = $$('#memberList .member-age').map(x => x.value);
     const count = ages.length;
-    const genre = $('#movieGenre').value;
 
     if (!count) { toast('请先选择票型'); return; }
 
@@ -1686,32 +1677,33 @@ body.colorblind {
       return;
     }
 
-    const vr = validRows(ages);
+    const hasTeen = ages.some(a => a === 'teen');
+    const hasSenior = ages.some(a => a === 'senior');
 
-    // 电影类型 → 推荐排数 & 居中偏好
-    const genreRules = {
-      action:      { row: 5, centerBias: 1.0 },
-      romance:     { row: 7, centerBias: 0.6 },
-      horror:      { row: 6, centerBias: 0.2 },
-      animation:   { row: 8, centerBias: 0.7 },
-      scifi:       { row: 4, centerBias: 1.0 },
-      drama:       { row: 6, centerBias: 0.6 },
-      documentary: { row: 6, centerBias: 0.5 },
-    };
-    const gRule = genreRules[genre] || genreRules.action;
-    const target = Math.max(1, Math.min(H.rows, gRule.row));
-    const centerWeight = 2.5 * gRule.centerBias;
+    // 过道分隔线：累积各组宽度得到分区边界
+    const sectionEnds = [];
+    let cum = 0;
+    for (let i = 0; i < H.groups.length - 1; i++) { cum += H.groups[i]; sectionEnds.push(cum); }
+
     const _score = (seatList) => {
       if (!seatList.length) return 0;
+      // 每个座位独立计算观影体验评分，取平均作为基础分
+      const perSeat = seatList.map(s => ScoreEngine.scoreSeat(s, H.rows, H.cols, seats));
+      const baseAvg = perSeat.reduce((a, x) => a + x.total, 0) / perSeat.length;
+      // 年龄约束惩罚：青少年坐前三排扣 30 分/座，老年人坐后三排扣 30 分/座
+      const agePenalty = seatList.reduce((pen, s) =>
+        pen + (hasTeen && s.row <= 3 ? 30 : 0) + (hasSenior && s.row >= H.rows - 2 ? 30 : 0), 0);
+      // 过道惩罚：座位跨分区扣 3 分
+      const sections = new Set(seatList.map(s => {
+        let c = 0;
+        for (let i = 0; i < H.groups.length; i++) { c += H.groups[i]; if (s.col <= c) return i; }
+        return H.groups.length - 1;
+      }));
+      const aislePenalty = sections.size > 1 ? 3 : 0;
+      // 情侣票/家庭票靠后加分：越靠后加分增速递减（开方函数）
       const avgRow = seatList.reduce((a, s) => a + s.row, 0) / seatList.length;
-      const avgCol = seatList.reduce((a, s) => a + s.col, 0) / seatList.length;
-      const rowSpread = Math.max(...seatList.map(s => s.row)) - Math.min(...seatList.map(s => s.row));
-      const colSpread = Math.max(...seatList.map(s => s.col)) - Math.min(...seatList.map(s => s.col));
-      return 100
-        - Math.abs(avgRow - target) * 7
-        - Math.abs(avgCol - (H.cols + 1) / 2) * centerWeight
-        - rowSpread * 5
-        - colSpread * 1.5;
+      const coupleBonus = (ticket === 'couple' || ticket === 'family') ? Math.round(Math.sqrt(Math.max(0, avgRow - H.rows * 0.5)) * 7) : 0;
+      return Math.round(baseAvg - agePenalty - aislePenalty + coupleBonus);
     };
 
     const allAvailable = seats.filter(s => !s.sold);
@@ -1723,7 +1715,7 @@ body.colorblind {
     let candidates = [];
 
     // ====== 阶段1：同排连续 ======
-    for (let r = vr.min; r <= vr.max; r++) {
+    for (let r = 1; r <= H.rows; r++) {
       for (let st = 1; st <= H.cols - count + 1; st++) {
         const group = [];
         for (let c = st; c < st + count; c++) {
@@ -1738,7 +1730,7 @@ body.colorblind {
 
     // ====== 阶段2：相邻排拼合（两排） ======
     if (count >= 2 && count <= H.cols * 2) {
-      for (let r = vr.min; r < vr.max; r++) {
+      for (let r = 1; r < H.rows; r++) {
         // 在各种分割方式中找最佳
         for (let split = 1; split < count; split++) {
           const cntA = split;
@@ -1857,8 +1849,8 @@ body.colorblind {
 
     const genreNames = { action: '动作片', romance: '爱情片', horror: '恐怖片', animation: '动画片', scifi: '科幻片', drama: '文艺片', documentary: '纪录片' };
     let rule = `「${genreNames[genre] || genre}」`;
-    if (ages.some(a => a === 'teen'))   rule += ' · 已避开前三排';
-    if (ages.some(a => a === 'senior')) rule += ' · 已避开最后三排';
+    if (ages.some(a => a === 'teen'))   rule += ' · 优先避开前三排';
+    if (ages.some(a => a === 'senior')) rule += ' · 优先避开后三排';
 
     const typeLabel = candidate.type === 'same-row'
       ? '同排连续就座，中心视角更自然'
@@ -1899,21 +1891,27 @@ body.colorblind {
     const avgR = ss.reduce((a, s) => a + s.row, 0) / ss.length;
     const avgC = ss.reduce((a, s) => a + s.col, 0) / ss.length;
 
-    // 三因子评分
-    const view  = Math.max(55, 100 - Math.abs(avgC - (H.cols + 1) / 2) * 4);
-    const dist  = Math.max(55, 100 - Math.abs(avgR - 6) * 8);
-    const space = Math.max(55, 96 - ss.reduce((n, s) =>
-      n + seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length, 0
-    ) * 4);
+    // 三因子评分（复用 Geometry 函数，与 ScoreEngine 一致）
+    const angles = ss.map(s => Geometry.viewingAngleDeg(s.col, s.row, H.cols));
+    const view   = Math.round(ss.reduce((a, _, i) => a + Math.max(30, 100 - angles[i] * 2.0), 0) / ss.length);
+    const dist   = Math.round(ss.reduce((a, s) => a + Geometry.distanceScore(s.row, H.rows), 0) / ss.length);
+    const cntr   = Math.round(ss.reduce((a, s) => a + Geometry.centerScore(s.col, H.cols), 0) / ss.length);
+    const nearSoldSum = ss.reduce((n, s) =>
+      n + seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length, 0);
+    const space  = Math.round(ss.reduce((a, s, i) => {
+      const k = seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length;
+      return a + Math.max(30, 100 - k * 9);
+    }, 0) / ss.length);
 
-    const total = Math.round(view * 0.4 + dist * 0.35 + space * 0.25);
-    const grade = total >= 90 ? '极佳' : total >= 76 ? '优秀' : '一般';
+    const w = window.CinemaConfig.scoreWeights;
+    const total = Math.round(view * w.viewingAngle + dist * w.distance + cntr * w.centerOffset + space * w.vacancy);
+    const grade = total >= 80 ? '极佳' : total >= 60 ? '优秀' : '一般';
 
     $('#scoreValue').textContent = total;
     $('#scoreRing').style.setProperty('--pct', total + '%');
     $('#scoreDetail').innerHTML =
       `<b style="color:var(--cyan)">${grade}</b><br>
-       视角 ${Math.round(view)} · 距离 ${Math.round(dist)} · 空间 ${Math.round(space)}`;
+       视角 ${view} · 距离 ${dist} · 居中 ${cntr} · 空位 ${space}`;
   }
 
   /* ==================== 订单逻辑 ==================== */
