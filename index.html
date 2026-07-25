@@ -1886,32 +1886,26 @@ body.colorblind {
       return;
     }
 
-    const H    = halls[hall];
-    const ss   = seats.filter(s => selected.has(s.id));
-    const avgR = ss.reduce((a, s) => a + s.row, 0) / ss.length;
-    const avgC = ss.reduce((a, s) => a + s.col, 0) / ss.length;
+    const H  = halls[hall];
+    const ss = seats.filter(s => selected.has(s.id));
 
-    // 三因子评分（复用 Geometry 函数，与 ScoreEngine 一致）
-    const angles = ss.map(s => Geometry.viewingAngleDeg(s.col, s.row, H.cols));
-    const view   = Math.round(ss.reduce((a, _, i) => a + Math.max(30, 100 - angles[i] * 2.0), 0) / ss.length);
-    const dist   = Math.round(ss.reduce((a, s) => a + Geometry.distanceScore(s.row, H.rows), 0) / ss.length);
-    const cntr   = Math.round(ss.reduce((a, s) => a + Geometry.centerScore(s.col, H.cols), 0) / ss.length);
-    const nearSoldSum = ss.reduce((n, s) =>
-      n + seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length, 0);
-    const space  = Math.round(ss.reduce((a, s, i) => {
+    // 三维评分（复用 Geometry 函数，与 ScoreEngine 一致）
+    const view  = Math.round(ss.reduce((a, s) => a + Math.max(30, 100 - Geometry.viewingAngleDeg(s.col, s.row, H.cols) * 2.0), 0) / ss.length);
+    const dist  = Math.round(ss.reduce((a, s) => a + Geometry.distanceScore(s.row, H.rows), 0) / ss.length);
+    const space = Math.round(ss.reduce((a, s) => {
       const k = seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length;
       return a + Math.max(30, 100 - k * 9);
     }, 0) / ss.length);
 
     const w = window.CinemaConfig.scoreWeights;
-    const total = Math.round(view * w.viewingAngle + dist * w.distance + cntr * w.centerOffset + space * w.vacancy);
+    const total = Math.round(view * w.viewingAngle + dist * w.distance + space * w.vacancy);
     const grade = total >= 80 ? '极佳' : total >= 60 ? '优秀' : '一般';
 
     $('#scoreValue').textContent = total;
     $('#scoreRing').style.setProperty('--pct', total + '%');
     $('#scoreDetail').innerHTML =
       `<b style="color:var(--cyan)">${grade}</b><br>
-       视角 ${view} · 距离 ${dist} · 居中 ${cntr} · 空位 ${space}`;
+       视角 ${view} · 距离 ${dist} · 空位 ${space}`;
   }
 
   /* ==================== 订单逻辑 ==================== */

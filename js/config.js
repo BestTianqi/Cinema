@@ -13,9 +13,8 @@ window.CinemaConfig = {
 
   // 体验评分维度权重（合计 1.0）
   scoreWeights: {
-    viewingAngle: 0.35,   // 视角偏差
-    distance:     0.30,   // 观影距离
-    centerOffset: 0.15,   // 水平居中
+    viewingAngle: 0.45,   // 视角偏差
+    distance:     0.35,   // 观影距离
     vacancy:      0.20,   // 周围空位密度
   },
 

@@ -35,10 +35,7 @@ const ScorePanel = (() => {
     const labelHtml = [
       `<b style="color:var(--cyan);font-size:14px">${emoji} ${grade}</b>`,
       `<span style="font-size:11px;color:var(--muted)">`,
-      `视角 ${a.angleScore} · 距离 ${a.distanceScore}`,
-      `</span>`,
-      `<span style="font-size:11px;color:var(--muted)">`,
-      `居中 ${a.centerScore} · 空位 ${a.vacancyScore}`,
+      `视角 ${a.angleScore} · 距离 ${a.distanceScore} · 空位 ${a.vacancyScore}`,
       `</span>`,
     ].join('<br>');
 
