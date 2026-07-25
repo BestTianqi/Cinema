@@ -1352,6 +1352,7 @@ body.colorblind {
 <script src="js/engine/heatmapEngine.js"></script>
 <script src="js/ui/authPanel.js"></script>
 <script src="js/ui/adminPanel.js"></script>
+<script src="js/ui/paymentPanel.js"></script>
 <script src="js/main.js"></script>
 
 <!-- 内联脚本 — 评分显示 + 订单流程 + 事件绑定（胶水代码） -->
@@ -1420,162 +1421,6 @@ body.colorblind {
     return false;
   }
 
-  function createOrder() {
-    if (!requireLogin() || !SeatData.selected().size) return;
-    const hall = HallConfig.get();
-    const app = A();
-    app.pendingOrder = {
-      hall: hall.key,
-      hallName: hall.name,
-      seats: [...SeatData.selected()],
-      amount: SeatData.selected().size * window.CinemaConfig.pricePerSeat,
-    };
-    showPayModal();
-  }
-
-  function showPayModal() {
-    const app = A();
-    const o = app.pendingOrder;
-    if (!o) return;
-    app.payMethod = 'wechat';
-
-    const label = RecommendEngine.labelSeats(o.seats);
-    $('#payOrderSummary').innerHTML =
-      `<div class="pay-summary">
-         <b>${o.hallName}</b> · ${label}<br>
-         座位数 <b>${o.seats.length}</b> 座 · 单价 <b>¥${window.CinemaConfig.pricePerSeat}</b><br>
-         合计 <b style="font-size:18px">¥${o.amount}</b>
-         <span style="color:var(--muted);margin-left:8px">扫码支付后完成购票</span>
-       </div>`;
-    $('#payAmount').textContent = o.amount;
-    const payError = $('#payError');
-    if (payError) payError.textContent = '';
-
-    const pm = $('#payMethods');
-    if (pm) {
-      pm.querySelectorAll('.pay-method').forEach(el => el.classList.remove('active'));
-      const defaultBtn = pm.querySelector('[data-pay="wechat"]');
-      if (defaultBtn) defaultBtn.classList.add('active');
-    }
-
-    const modal = $('#payModal');
-    if (modal) modal.classList.remove('hidden');
-    renderQrCode('wechat');
-  }
-
-  function selectPayMethod(method) {
-    A().payMethod = method;
-    const pm = $('#payMethods');
-    if (pm) {
-      pm.querySelectorAll('.pay-method').forEach(el => {
-        el.classList.toggle('active', el.dataset.pay === method);
-      });
-    }
-    renderQrCode(method);
-  }
-
-  function renderQrCode(method) {
-    const box = document.getElementById('qrCodeBox');
-    if (!box) return;
-    const app = A();
-    const names = { wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal', unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡' };
-    const amount = app.pendingOrder ? app.pendingOrder.amount : 0;
-    const data = `https://www.tsinghua.edu.cn\n支付方式：${names[method] || method}\n金额：¥${amount}\n订单号：SC${Date.now().toString().slice(-9)}`;
-    const url = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(data)}`;
-    box.innerHTML = `<img src="${url}" width="160" height="160" alt="扫码支付" style="display:block;border-radius:8px">`;
-  }
-
-  function confirmPayment() {
-    const app = A();
-    const o = app.pendingOrder;
-    if (!o) return;
-
-    const method = app.payMethod || 'wechat';
-    const order = {
-      id: 'SC' + Date.now().toString().slice(-9),
-      user: app.user().name,
-      hall: o.hall,
-      hallName: o.hallName,
-      seats: o.seats,
-      status: '已购票',
-      payMethod: method,
-      amount: o.amount,
-      time: new Date().toLocaleString(),
-    };
-
-    const list = app.orders();
-    list.unshift(order);
-    app.write(app.STORE.orders, list);
-
-    const sm = app.soldMap();
-    sm[o.hall] = [...new Set([...(sm[o.hall] || []), ...o.seats])];
-    app.write(app.STORE.sold, sm);
-
-    const modal = $('#payModal');
-    if (modal) modal.classList.add('hidden');
-    app.pendingOrder = null;
-
-    const payNames = { wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal', unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡' };
-    app.toast(`支付成功（${payNames[method] || method}）· 已购票`);
-    CanvasRenderer.makeSeats();
-    renderOrders();
-    AdminPanel.render();
-  }
-
-  function cancelPayment() {
-    A().pendingOrder = null;
-    const modal = $('#payModal');
-    if (modal) modal.classList.add('hidden');
-    A().toast('已取消支付');
-  }
-
-  function refundOrder(id) {
-    const app = A();
-    const list = app.orders();
-    const order = list.find(x => x.id === id);
-    if (!order) return;
-
-    const sm = app.soldMap();
-    sm[order.hall] = (sm[order.hall] || []).filter(x => !order.seats.includes(x));
-    app.write(app.STORE.sold, sm);
-    order.status = '已退票';
-    app.write(app.STORE.orders, list);
-
-    app.toast('已退票');
-    CanvasRenderer.makeSeats();
-    renderOrders();
-    AdminPanel.render();
-  }
-
-  function renderOrders() {
-    const app = A();
-    const u = app.user();
-    const list = app.orders().filter(o => u && (u.role === 'admin' || o.user === u.name));
-    const orderList = $('#orderList');
-    if (!orderList) return;
-
-    if (!list.length) {
-      orderList.innerHTML = '<div class="sub">暂无订单，完成一次选座后订单会出现在这里。</div>';
-    } else {
-      orderList.innerHTML = list.map(o => `
-        <div class="order">
-          <div><b>${o.hallName}</b><div class="sub">${RecommendEngine.labelSeats(o.seats)}</div></div>
-          <div>${o.time}</div>
-          <div class="pill" style="${o.status === '已购票' ? 'background:#1a2e29;color:#66e4aa' : 'background:#2a1a1a;color:#ff9ea5'}">${o.status}${o.payMethod ? ' · ' + ({wechat:'微信',alipay:'支付宝',paypal:'PayPal',unionpay:'云闪付',applepay:'Apple Pay',card:'银行卡'}[o.payMethod]||o.payMethod) : ''}</div>
-          <div>¥${o.amount}</div>
-          ${o.status === '已购票'
-            ? '<button data-order="' + o.id + '">退票</button>'
-            : '<span></span>'}
-        </div>
-      `).join('');
-
-      orderList.querySelectorAll('button').forEach(b =>
-        b.onclick = () => refundOrder(b.dataset.order)
-      );
-    }
-
-    AdminPanel.render();
-  }
 
   /* ==================== 票型成员列表 ==================== */
 
@@ -1607,7 +1452,7 @@ body.colorblind {
       $(`#view-${b.dataset.view}`).classList.add('active');
       if (b.dataset.view === 'booking') setTimeout(() => CanvasRenderer.resize());
       if (b.dataset.view === 'heat')    setTimeout(() => CanvasRenderer.resize());
-      if (b.dataset.view === 'orders')  renderOrders();
+      if (b.dataset.view === 'orders')  PaymentPanel.renderOrders();
       if (b.dataset.view === 'admin')   AdminPanel.render();
     }
   );
@@ -1682,21 +1527,21 @@ body.colorblind {
   const opt2 = $('#opt2'); if (opt2) opt2.onclick = () => RecommendEngine.switchTo(1);
   const opt3 = $('#opt3'); if (opt3) opt3.onclick = () => RecommendEngine.switchTo(2);
   const buyBtn = $('#buyBtn');
-  if (buyBtn) buyBtn.onclick = createOrder;
+  if (buyBtn) buyBtn.onclick = () => PaymentPanel.createOrder();
 
   // 支付方式选择
   const payMethods = $('#payMethods');
   if (payMethods) {
     payMethods.querySelectorAll('.pay-method').forEach(b =>
-      b.onclick = () => selectPayMethod(b.dataset.pay)
+      b.onclick = () => PaymentPanel.selectPayMethod(b.dataset.pay)
     );
   }
 
   // 支付确认 / 取消
   const payConfirmBtn = $('#payConfirmBtn');
-  if (payConfirmBtn) payConfirmBtn.onclick = confirmPayment;
+  if (payConfirmBtn) payConfirmBtn.onclick = () => PaymentPanel.confirmPayment();
   const payCancelBtn = $('#payCancelBtn');
-  if (payCancelBtn) payCancelBtn.onclick = cancelPayment;
+  if (payCancelBtn) payCancelBtn.onclick = () => PaymentPanel.cancelPayment();
   const clearSeats = $('#clearSeats');
   if (clearSeats) clearSeats.onclick = () => { SeatData.clearSelection(); updateOrder(); CanvasRenderer.drawSeats(); };
   const resetView = $('#resetView');
@@ -1775,7 +1620,7 @@ body.colorblind {
       app.write(app.STORE.orders, []);
       app.write(app.STORE.sold, {});
       CanvasRenderer.makeSeats();
-      renderOrders();
+      PaymentPanel.renderOrders();
       AdminPanel._applyPreset('empty');
       app.toast('演示数据已重置');
     }
@@ -1792,7 +1637,7 @@ body.colorblind {
     EventBus.on('seats:changed', () => updateOrder());
     EventBus.on('order:changed', () => {
       CanvasRenderer.makeSeats();
-      renderOrders();
+      PaymentPanel.renderOrders();
     });
   }
 
