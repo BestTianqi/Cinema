@@ -1335,7 +1335,7 @@ body.colorblind {
      JavaScript — 外部模块 + 内联脚本
      ================================================================ -->
 
-<!-- 成员D：架构 + 观影评分 + 订单中心（10 个模块） -->
+<!-- 外部模块 -->
 <script src="js/config.js"></script>
 <script src="js/utils/eventBus.js"></script>
 <script src="js/utils/geometry.js"></script>
@@ -1345,540 +1345,31 @@ body.colorblind {
 <script src="js/engine/scoreEngine.js"></script>
 <script src="js/ui/scorePanel.js"></script>
 <script src="js/ui/orderPanel.js"></script>
+<script src="js/appState.js"></script>
+<script src="js/render/canvasRenderer.js"></script>
+<script src="js/render/interactionLayer.js"></script>
+<script src="js/engine/recommendEngine.js"></script>
+<script src="js/engine/heatmapEngine.js"></script>
+<script src="js/ui/authPanel.js"></script>
+<script src="js/ui/adminPanel.js"></script>
 <script src="js/main.js"></script>
 
-<!-- 内联脚本 — Canvas 渲染 / 交互 / 推荐 / 认证 / 热度图
-     待成员 A / B / C 拆分为独立模块文件 -->
+<!-- 内联脚本 — 评分显示 + 订单流程 + 事件绑定（胶水代码） -->
 <script>
 (() => {
   'use strict';
 
-  /* ==================== 工具函数 ==================== */
-  const $  = s => document.querySelector(s);
-  const $$ = s => [...document.querySelectorAll(s)];
-
-  const STORE = { users: 'sc_users', session: 'sc_session', orders: 'sc_orders', sold: 'sc_sold', access: 'sc_access' };
-  const read  = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
-  const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-
-  // 初始化默认管理员
-  if (!read(STORE.users, null)) {
-    write(STORE.users, { admin: { password: 'admin123', role: 'admin', member: true } });
-  }
-
-  /* ==================== 状态变量 ==================== */
-  const halls = {
-    small:  { name: '星海小厅', cols: 10, rows: 10, groups: [10] },
-    medium: { name: '未来中厅', cols: 20, rows: 10, groups: [5, 10, 5] },
-    large:  { name: '银河大厅', cols: 30, rows: 10, groups: [5, 20, 5] },
-  };
-
-  let hall       = 'small';
-  let ticket     = 'personal';
-  let selected   = new Set();
-  let recommended = new Set();
-  let seats      = [];
-  let scale      = 1;
-  let offsetX    = 0;
-  let offsetY    = 0;
-  let dragSelect = false;
-  let pointer    = null;
-  let authMode   = 'login';
-  let heatHall   = 'small';
-  let heatDay    = 0;
-  let _topCandidates = [];
-
-  const canvas     = $('#seatCanvas');
-  const ctx        = canvas.getContext('2d');
-  const heatCanvas = $('#heatCanvas');
-  const hctx       = heatCanvas.getContext('2d');
-
-  /* ==================== 账户管理 ==================== */
-  const user    = () => read(STORE.session, null);
-  const orders  = () => read(STORE.orders, []);
-  const soldMap = () => read(STORE.sold, {});
-
-  /* ==================== Toast / 语音 ==================== */
-  function toast(t) {
-    const el = $('#toast');
-    el.textContent = t;
-    el.classList.add('show');
-    voice(t);
-    setTimeout(() => el.classList.remove('show'), 2200);
-  }
-
-  function voice(t) {
-    if ($('#voice').checked && 'speechSynthesis' in window) {
-      speechSynthesis.cancel();
-      speechSynthesis.speak(new SpeechSynthesisUtterance(t));
-    }
-  }
-
-  /* ==================== Canvas 绘制 ==================== */
-
-  /** 获取 CSS 变量值 */
-  const getCss = x => getComputedStyle(document.body).getPropertyValue(x).trim();
-
-  /** DPR 自适应 + 绘制座位图 & 热度图 */
-  function resize() {
-    const d = devicePixelRatio || 1;
-
-    // 座位 Canvas
-    const r = canvas.getBoundingClientRect();
-    canvas.width  = r.width * d;
-    canvas.height = r.height * d;
-    ctx.setTransform(d, 0, 0, d, 0, 0);
-    drawSeats();
-
-    // 热度 Canvas
-    const hr = heatCanvas.getBoundingClientRect();
-    heatCanvas.width  = hr.width * d;
-    heatCanvas.height = hr.height * d;
-    hctx.setTransform(d, 0, 0, d, 0, 0);
-    drawHeat();
-  }
-
-  /** 生成座位数组 */
-  function makeSeats() {
-    seats = [];
-    const H = halls[hall];
-    for (let row = 1; row <= H.rows; row++) {
-      for (let col = 1; col <= H.cols; col++) {
-        seats.push({
-          row, col,
-          id: `${row}-${col}`,
-          sold: (soldMap()[hall] || []).includes(`${row}-${col}`),
-          x: 0, y: 0, r: 0,
-        });
-      }
-    }
-    selected.clear();
-    recommended.clear();
-    updateOrder();
-  }
-
-  /** 计算座位 Canvas 坐标（分区、过道与轻微弧形排列） */
-  function seatGeometry(seatArr, H, w, h) {
-    const margin = w < 560 ? 42 : 60;
-    const baseY = 48;
-    const rowGap = (h - 96) / (H.rows - 1 || 1);
-    const aisleUnits = 1.35;
-    const groups = H.groups || [H.cols];
-    const boundaries = [];
-    groups.slice(0, -1).reduce((sum, size) => {
-      boundaries.push(sum + size);
-      return sum + size;
-    }, 0);
-    const slots = H.cols - 1 + boundaries.length * aisleUnits;
-    const widthScale = H.cols === 10 ? 0.68 : H.cols === 20 ? 0.86 : 0.96;
-    const gap = ((w - margin * 2) * widthScale) / (slots || 1);
-    seatArr.forEach(s => {
-      const passedAisles = boundaries.filter(boundary => s.col > boundary).length;
-      const localX = (s.col - 1 + passedAisles * aisleUnits - slots / 2) * gap;
-      const normalizedX = localX / ((w - margin * 2) / 2 || 1);
-      s.x = w / 2 + localX;
-      s.y = baseY + (s.row - 1) * rowGap - Math.pow(normalizedX, 2) * 12;
-      s.r = Math.max(5, Math.min(12, gap * 0.36, rowGap * 0.3));
-    });
-    return { boundaries };
-  }
-
-  /** 绘制分区过道、银幕中轴线和两侧排号 */
-  function drawHallGuides(meta, H, w, h) {
-    ctx.save();
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 5]);
-    ctx.strokeStyle = '#7f8da33f';
-
-    ctx.beginPath();
-    ctx.moveTo(w / 2, 18);
-    ctx.lineTo(w / 2, h - 26);
-    ctx.stroke();
-
-    meta.boundaries.forEach(boundary => {
-      const left = seats.find(s => s.row === Math.ceil(H.rows / 2) && s.col === boundary);
-      const right = seats.find(s => s.row === Math.ceil(H.rows / 2) && s.col === boundary + 1);
-      if (!left || !right) return;
-      const aisleX = (left.x + right.x) / 2;
-      ctx.beginPath();
-      ctx.moveTo(aisleX, 28);
-      ctx.lineTo(aisleX, h - 24);
-      ctx.stroke();
-    });
-
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#65738c';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    for (let row = 1; row <= H.rows; row++) {
-      const rowSeats = seats.filter(s => s.row === row);
-      if (!rowSeats.length) continue;
-      ctx.fillText(`${row}排`, 20, rowSeats[0].y);
-      ctx.fillText(`${row}排`, w - 20, rowSeats[rowSeats.length - 1].y);
-    }
-    ctx.restore();
-  }
-
-  /** 绘制座位图主循环 */
-  function drawSeats() {
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    ctx.clearRect(0, 0, w, h);
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
-    ctx.scale(scale, scale);
-
-    const hallConfig = halls[hall];
-    const geometry = seatGeometry(seats, hallConfig, w, h);
-    drawHallGuides(geometry, hallConfig, w, h);
-    ctx.font = `${halls[hall].cols > 20 ? 7 : 9}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    seats.forEach(s => {
-      // 颜色逻辑：已售(红) > 系统推荐(紫) > 用户选中(黄) > 空座(绿)
-      let c;
-      if (s.sold)                c = getCss('--red');
-      else if (selected.has(s.id))    c = getCss('--yellow');
-      else if (recommended.has(s.id)) c = getCss('--purple');
-      else                            c = getCss('--green');
-
-      ctx.fillStyle = c;
-      ctx.globalAlpha = s.sold ? 0.9 : 1;
-      roundRect(ctx, s.x - s.r, s.y - s.r, s.r * 2, s.r * 2, Math.max(2, s.r * 0.35));
-      ctx.fill();
-
-      // 座位够大时写列号
-      if (s.r > 8) {
-        ctx.fillStyle = s.sold ? '#fff' : '#071017';
-        ctx.fillText(s.col, s.x, s.y + 0.5);
-      }
-    });
-
-    ctx.globalAlpha = 1;
-
-    // 拖拽框选矩形
-    if (pointer && pointer.box) {
-      ctx.strokeStyle = getCss('--cyan');
-      ctx.fillStyle   = '#65e7ff20';
-      ctx.lineWidth   = 1.5;
-      const b = box(pointer.start, pointer.now);
-      ctx.fillRect(b.x, b.y, b.w, b.h);
-      ctx.strokeRect(b.x, b.y, b.w, b.h);
-    }
-
-    ctx.restore();
-  }
-
-  /** 兼容无 roundRect 的浏览器（Safari 旧版） */
-  function roundRect(c, x, y, w, h, r) {
-    c.beginPath();
-    if (c.roundRect) { c.roundRect(x, y, w, h, r); } else { c.rect(x, y, w, h); }
-  }
-
-  /* ==================== 交互：点击 / 拖拽 / 缩放 ==================== */
-
-  /** 鼠标/触摸坐标 → Canvas 逻辑坐标 */
-  function point(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left - offsetX) / scale,
-      y: (e.clientY - rect.top  - offsetY) / scale,
-    };
-  }
-
-  /** 碰撞检测：找到鼠标命中的座位 */
-  function hit(p) {
-    return seats.find(s =>
-      Math.abs(s.x - p.x) <= s.r + 3 && Math.abs(s.y - p.y) <= s.r + 3
-    );
-  }
-
-  /** 矩形坐标归一化 */
-  function box(a, b) {
-    return {
-      x: Math.min(a.x, b.x), y: Math.min(a.y, b.y),
-      w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y),
-    };
-  }
-
-  // pointerdown — 判断是 选座 / 框选 / 平移
-  canvas.addEventListener('pointerdown', e => {
-    canvas.setPointerCapture(e.pointerId);
-    const p = point(e);
-    const s = hit(p);
-
-    if (dragSelect && !s) {
-      // 拖拽框选模式
-      pointer = { box: true, start: p, now: p };
-    } else if (e.button === 1 || (!s && !dragSelect)) {
-      // 中键拖拽 或 空白区域拖拽 → 平移画布
-      pointer = {
-        pan: true,
-        start:  { x: e.clientX, y: e.clientY },
-        origin: { x: offsetX,  y: offsetY },
-      };
-    } else if (s && !s.sold) {
-      // 点击座位：Ctrl=多选，否则=单选
-      if (!e.ctrlKey && !e.metaKey) selected.clear();
-      if (selected.has(s.id)) { selected.delete(s.id); }
-      else                     { selected.add(s.id); }
-      recommended.delete(s.id);
-      updateOrder();
-      drawSeats();
-    }
-  });
-
-  // pointermove — 框选拉动 / 画布平移
-  canvas.addEventListener('pointermove', e => {
-    if (!pointer) return;
-    if (pointer.box) { pointer.now = point(e); }
-    if (pointer.pan) {
-      offsetX = pointer.origin.x + e.clientX - pointer.start.x;
-      offsetY = pointer.origin.y + e.clientY - pointer.start.y;
-    }
-    drawSeats();
-  });
-
-  // pointerup — 完成框选
-  canvas.addEventListener('pointerup', () => {
-    if (pointer && pointer.box) {
-      const b = box(pointer.start, pointer.now);
-      seats
-        .filter(s => !s.sold && s.x >= b.x && s.x <= b.x + b.w && s.y >= b.y && s.y <= b.y + b.h)
-        .forEach(s => selected.add(s.id));
-      updateOrder();
-    }
-    pointer = null;
-    drawSeats();
-  });
-
-  // 滚轮缩放
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    scale = Math.max(0.65, Math.min(2.1, scale + (e.deltaY < 0 ? 0.1 : -0.1)));
-    drawSeats();
-  }, { passive: false });
-
-  /* ==================== 智能推荐引擎 ==================== */
-
-  function recommend() {
-    if (!requireLogin()) return;
-
-    // 获取人数与年龄类别
-    const ages = $$('#memberList .member-age').map(x => x.value);
-    const count = ages.length;
-
-    if (!count) { toast('请先选择票型'); return; }
-
-    const H = halls[hall];
-    if (count > H.cols * H.rows) {
-      toast('当前放映厅无足够座位');
-      return;
-    }
-
-    const hasTeen = ages.some(a => a === 'teen');
-    const hasSenior = ages.some(a => a === 'senior');
-
-    // 过道分隔线：累积各组宽度得到分区边界
-    const sectionEnds = [];
-    let cum = 0;
-    for (let i = 0; i < H.groups.length - 1; i++) { cum += H.groups[i]; sectionEnds.push(cum); }
-
-    const _score = (seatList) => {
-      if (!seatList.length) return 0;
-      // 每个座位独立计算观影体验评分，取平均作为基础分
-      const perSeat = seatList.map(s => ScoreEngine.scoreSeat(s, H.rows, H.cols, seats));
-      const baseAvg = perSeat.reduce((a, x) => a + x.total, 0) / perSeat.length;
-      // 年龄约束惩罚：青少年坐前三排扣 30 分/座，老年人坐后三排扣 30 分/座
-      const agePenalty = seatList.reduce((pen, s) =>
-        pen + (hasTeen && s.row <= 3 ? 30 : 0) + (hasSenior && s.row >= H.rows - 2 ? 30 : 0), 0);
-      // 过道惩罚：座位跨分区扣 3 分
-      const sections = new Set(seatList.map(s => {
-        let c = 0;
-        for (let i = 0; i < H.groups.length; i++) { c += H.groups[i]; if (s.col <= c) return i; }
-        return H.groups.length - 1;
-      }));
-      const aislePenalty = sections.size > 1 ? 3 : 0;
-      // 情侣票/家庭票靠后加分：越靠后加分增速递减（开方函数）
-      const avgRow = seatList.reduce((a, s) => a + s.row, 0) / seatList.length;
-      const coupleBonus = (ticket === 'couple' || ticket === 'family') ? Math.round(Math.sqrt(Math.max(0, avgRow - H.rows * 0.5)) * 7) : 0;
-      return Math.round(baseAvg - agePenalty - aislePenalty + coupleBonus);
-    };
-
-    const allAvailable = seats.filter(s => !s.sold);
-    if (allAvailable.length < count) {
-      toast('当前放映厅剩余空位不足');
-      return;
-    }
-
-    let candidates = [];
-
-    // ====== 阶段1：同排连续 ======
-    for (let r = 1; r <= H.rows; r++) {
-      for (let st = 1; st <= H.cols - count + 1; st++) {
-        const group = [];
-        for (let c = st; c < st + count; c++) {
-          group.push(seats.find(s => s.row === r && s.col === c));
-        }
-        if (group.every(s => s && !s.sold)) {
-          const s = _score(group);
-          candidates.push({ group, score: s + 15, type: 'same-row' });
-        }
-      }
-    }
-
-    // ====== 阶段2：相邻排拼合（两排） ======
-    if (count >= 2 && count <= H.cols * 2) {
-      for (let r = 1; r < H.rows; r++) {
-        // 在各种分割方式中找最佳
-        for (let split = 1; split < count; split++) {
-          const cntA = split;
-          const cntB = count - split;
-          if (cntA > H.cols || cntB > H.cols) continue;
-
-          // 行 A（前排）中找 cntA 连续空位
-          for (let stA = 1; stA <= H.cols - cntA + 1; stA++) {
-            const groupA = [];
-            for (let c = stA; c < stA + cntA; c++) groupA.push(seats.find(s => s.row === r && s.col === c));
-            if (!groupA.every(s => s && !s.sold)) continue;
-
-            const colRangeA = [stA, stA + cntA - 1];
-
-            // 行 B（后排）中找 cntB 连续空位，且列区间有重叠
-            for (let stB = 1; stB <= H.cols - cntB + 1; stB++) {
-              const colRangeB = [stB, stB + cntB - 1];
-              // 有重叠或紧邻（间距≤1）
-              const overlap = Math.max(0, Math.min(colRangeA[1], colRangeB[1]) - Math.max(colRangeA[0], colRangeB[0]) + 1);
-              const gap = overlap > 0 ? 0 : Math.min(Math.abs(colRangeA[1] - colRangeB[0]), Math.abs(colRangeB[1] - colRangeA[0]));
-              if (gap > 1) continue;
-
-              const groupB = [];
-              for (let c = stB; c < stB + cntB; c++) groupB.push(seats.find(s => s.row === r + 1 && s.col === c));
-              if (!groupB.every(s => s && !s.sold)) continue;
-
-              const group = [...groupA, ...groupB];
-              const s = _score(group);
-              candidates.push({ group, score: s + (overlap > 0 ? 8 : 3), type: 'multi-row' });
-            }
-          }
-        }
-      }
-    }
-
-    // ====== 阶段3：贪心优选（无连续方案时从最优空位中挑） ======
-    if (!candidates.length) {
-      const scored = allAvailable.map(s => ({
-        seat: s,
-        score: _score([s]),
-      }));
-      scored.sort((a, b) => b.score - a.score);
-      const group = scored.slice(0, count).map(x => x.seat);
-      candidates.push({ group, score: _score(group) - 10, type: 'scattered' });
-    }
-
-    // 取评分最高的前三个方案
-    candidates.sort((a, b) => b.score - a.score);
-    _topCandidates = candidates.slice(0, 3);
-
-    // 渲染备选方案卡片
-    _renderOptions(_topCandidates);
-
-    // 默认选择第1个（最佳）
-    _switchOption(0);
-
-    const best = _topCandidates[0];
-    toast(best.type === 'same-row' ? '智能推荐完成' : best.type === 'multi-row' ? '已推荐前后排组合方案' : '暂无连续座位，已就近推荐');
-  }
-
-  /** 渲染 top-3 备选方案卡片 */
-  function _renderOptions(candidates) {
-    const list = $('#optionList');
-    const box = $('#recommendBox');
-    box.classList.remove('hidden');
-
-    if (candidates.length <= 1) {
-      list.classList.add('hidden');
-      return;
-    }
-
-    list.classList.remove('hidden');
-
-    const typeLabels = { 'same-row': '同排连续', 'multi-row': '前后排组合', 'scattered': '就近优选' };
-
-    candidates.forEach((c, i) => {
-      const card = $(`#opt${i + 1}`);
-      if (!card) return;
-
-      if (i < candidates.length) {
-        card.classList.remove('hidden');
-        $(`#optSeats${i + 1}`).textContent = labelSeats(c.group.map(s => s.id));
-        $(`#optDesc${i + 1}`).textContent = `${typeLabels[c.type] || ''} · ${Math.round(c.score)}分`;
-      } else {
-        card.classList.add('hidden');
-      }
-    });
-  }
-
-  /** 切换到第 idx 个备选方案（0-based） */
-  function _switchOption(idx) {
-    if (!_topCandidates[idx]) return;
-
-    const candidate = _topCandidates[idx];
-
-    // 更新卡片 active 样式
-    [1, 2, 3].forEach(i => {
-      const card = $(`#opt${i}`);
-      if (card) card.classList.toggle('active', i - 1 === idx);
-    });
-
-    // 应用座位选择
-    selected.clear();
-    recommended.clear();
-    candidate.group.forEach(s => {
-      selected.add(s.id);
-      recommended.add(s.id);
-    });
-
-    // 推荐文案
-    const seatLabel = labelSeats(candidate.group.map(s => s.id));
-    $('#recommendTitle').textContent = `已推荐 ${seatLabel}`;
-
-    const ages = $$('#memberList .member-age').map(x => x.value);
-    const genre = $('#movieGenre').value;
-
-    const genreNames = { action: '动作片', romance: '爱情片', horror: '恐怖片', animation: '动画片', scifi: '科幻片', drama: '文艺片', documentary: '纪录片' };
-    let rule = `「${genreNames[genre] || genre}」`;
-    if (ages.some(a => a === 'teen'))   rule += ' · 优先避开前三排';
-    if (ages.some(a => a === 'senior')) rule += ' · 优先避开后三排';
-
-    const typeLabel = candidate.type === 'same-row'
-      ? '同排连续就座，中心视角更自然'
-      : candidate.type === 'multi-row'
-        ? '前后排就近组合，座位紧密相邻'
-        : '已从最优空位中为您挑选，座位可能较分散';
-
-    $('#recommendReason').textContent = `推荐理由：${rule}${typeLabel}。你仍可在左侧手动调整。`;
-    $('#step2').classList.add('done');
-    updateOrder();
-    drawSeats();
-  }
-
-  /** 座位 id → 人类可读文本 */
-  function labelSeats(ids = [...selected]) {
-    return ids
-      .sort((a, b) => {
-        const [x, y] = a.split('-').map(Number);
-        const [m, n] = b.split('-').map(Number);
-        return x - m || y - n;
-      })
-      .map(x => { const [r, c] = x.split('-'); return `${r}排${c}座`; })
-      .join('、');
-  }
-
-  /* ==================== 体验评分（inline 版 — 外部 ScoreEngine 可替换） ==================== */
+  const A  = () => window.CinemaApp;
+  const $  = A().$;
+  const $$ = A().$$;
+
+  /* ==================== 体验评分 ==================== */
 
   function calcScore() {
+    const selected = SeatData.selected();
+    const seats = SeatData.all();
+    const H = HallConfig.get();
+
     if (!selected.size) {
       $('#scoreValue').textContent = '--';
       $('#scoreRing').style.setProperty('--pct', '0%');
@@ -1886,10 +1377,7 @@ body.colorblind {
       return;
     }
 
-    const H  = halls[hall];
     const ss = seats.filter(s => selected.has(s.id));
-
-    // 三维评分（复用 Geometry 函数，与 ScoreEngine 一致）
     const view  = Math.round(ss.reduce((a, s) => a + Math.max(30, 100 - Geometry.viewingAngleDeg(s.col, s.row, H.cols) * 2.0), 0) / ss.length);
     const dist  = Math.round(ss.reduce((a, s) => a + Geometry.distanceScore(s.row, H.rows), 0) / ss.length);
     const space = Math.round(ss.reduce((a, s) => {
@@ -1907,55 +1395,51 @@ body.colorblind {
       `<b style="color:var(--cyan)">${grade}</b><br>
        视角 ${view} · 距离 ${dist} · 空位 ${space}`;
   }
+  window.calcScore = calcScore;
 
   /* ==================== 订单逻辑 ==================== */
 
-  /** 更新侧栏：已选座位列表 + 价格 + 按钮状态 */
   function updateOrder() {
+    const selected = SeatData.selected();
     const count = selected.size;
-    $('#selectedList').textContent = count ? labelSeats() : '尚未选择座位';
-    $('#totalPrice').textContent = count * 48;
-    $('#buyBtn').disabled = count === 0;
-    $('#step3').classList.toggle('done', count > 0);
+    const label = count ? RecommendEngine.labelSeats([...selected]) : '尚未选择座位';
+    $('#selectedList').textContent = label;
+    $('#totalPrice').textContent = count * window.CinemaConfig.pricePerSeat;
+    const buyBtn = $('#buyBtn');
+    if (buyBtn) buyBtn.disabled = count === 0;
+    const step3 = $('#step3');
+    if (step3) step3.classList.toggle('done', count > 0);
     calcScore();
   }
+  window.updateOrder = updateOrder;
 
   function requireLogin() {
-    if (user()) return true;
-    openAuth();
-    toast('请先登录');
+    if (A().user()) return true;
+    AuthPanel.openAuth();
+    A().toast('请先登录');
     return false;
   }
 
-  /** 支付方式（默认微信） */
-  let payMethod = 'wechat';
-
-  /** 待支付订单暂存 */
-  let pendingOrder = null;
-
-  /** 购票 → 弹出支付界面 */
   function createOrder() {
-    if (!requireLogin() || !selected.size) return;
-
-    pendingOrder = {
-      hall,
-      hallName: halls[hall].name,
-      seats:    [...selected],
-      amount:   selected.size * window.CinemaConfig.pricePerSeat,
+    if (!requireLogin() || !SeatData.selected().size) return;
+    const hall = HallConfig.get();
+    const app = A();
+    app.pendingOrder = {
+      hall: hall.key,
+      hallName: hall.name,
+      seats: [...SeatData.selected()],
+      amount: SeatData.selected().size * window.CinemaConfig.pricePerSeat,
     };
-
     showPayModal();
   }
 
-  /** 显示支付弹窗 */
   function showPayModal() {
-    if (!pendingOrder) return;
+    const app = A();
+    const o = app.pendingOrder;
+    if (!o) return;
+    app.payMethod = 'wechat';
 
-    payMethod = 'wechat';
-    const o = pendingOrder;
-    const label = labelSeats(o.seats);
-
-    // 摘要
+    const label = RecommendEngine.labelSeats(o.seats);
     $('#payOrderSummary').innerHTML =
       `<div class="pay-summary">
          <b>${o.hallName}</b> · ${label}<br>
@@ -1963,114 +1447,119 @@ body.colorblind {
          合计 <b style="font-size:18px">¥${o.amount}</b>
          <span style="color:var(--muted);margin-left:8px">扫码支付后完成购票</span>
        </div>`;
-
     $('#payAmount').textContent = o.amount;
-    $('#payError').textContent   = '';
+    const payError = $('#payError');
+    if (payError) payError.textContent = '';
 
-    // 高亮默认支付方式
-    $('#payMethods').querySelectorAll('.pay-method').forEach(el =>
-      el.classList.remove('active')
-    );
-    const defaultBtn = $('#payMethods').querySelector('[data-pay="wechat"]');
-    if (defaultBtn) defaultBtn.classList.add('active');
+    const pm = $('#payMethods');
+    if (pm) {
+      pm.querySelectorAll('.pay-method').forEach(el => el.classList.remove('active'));
+      const defaultBtn = pm.querySelector('[data-pay="wechat"]');
+      if (defaultBtn) defaultBtn.classList.add('active');
+    }
 
-    $('#payModal').classList.remove('hidden');
+    const modal = $('#payModal');
+    if (modal) modal.classList.remove('hidden');
     renderQrCode('wechat');
   }
 
-  /** 支付方式切换 */
   function selectPayMethod(method) {
-    payMethod = method;
-    $('#payMethods').querySelectorAll('.pay-method').forEach(el => {
-      el.classList.toggle('active', el.dataset.pay === method);
-    });
+    A().payMethod = method;
+    const pm = $('#payMethods');
+    if (pm) {
+      pm.querySelectorAll('.pay-method').forEach(el => {
+        el.classList.toggle('active', el.dataset.pay === method);
+      });
+    }
     renderQrCode(method);
   }
 
-  /** 生成真实二维码（通过 qrserver API） */
   function renderQrCode(method) {
     const box = document.getElementById('qrCodeBox');
     if (!box) return;
+    const app = A();
     const names = { wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal', unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡' };
-    const amount = pendingOrder ? pendingOrder.amount : 0;
+    const amount = app.pendingOrder ? app.pendingOrder.amount : 0;
     const data = `https://www.tsinghua.edu.cn\n支付方式：${names[method] || method}\n金额：¥${amount}\n订单号：SC${Date.now().toString().slice(-9)}`;
     const url = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(data)}`;
     box.innerHTML = `<img src="${url}" width="160" height="160" alt="扫码支付" style="display:block;border-radius:8px">`;
   }
 
-  /** 确认支付 */
   function confirmPayment() {
-    if (!pendingOrder) return;
+    const app = A();
+    const o = app.pendingOrder;
+    if (!o) return;
 
-    const o = pendingOrder;
-    payMethod = payMethod || 'wechat';
-
+    const method = app.payMethod || 'wechat';
     const order = {
-      id:        'SC' + Date.now().toString().slice(-9),
-      user:      user().name,
-      hall:      o.hall,
-      hallName:  o.hallName,
-      seats:     o.seats,
-      status:    '已购票',
-      payMethod: payMethod,
-      amount:    o.amount,
-      time:      new Date().toLocaleString(),
+      id: 'SC' + Date.now().toString().slice(-9),
+      user: app.user().name,
+      hall: o.hall,
+      hallName: o.hallName,
+      seats: o.seats,
+      status: '已购票',
+      payMethod: method,
+      amount: o.amount,
+      time: new Date().toLocaleString(),
     };
 
-    const list = orders();
+    const list = app.orders();
     list.unshift(order);
-    write(STORE.orders, list);
+    app.write(app.STORE.orders, list);
 
-    // 标记座位为已售
-    const sm = soldMap();
+    const sm = app.soldMap();
     sm[o.hall] = [...new Set([...(sm[o.hall] || []), ...o.seats])];
-    write(STORE.sold, sm);
+    app.write(app.STORE.sold, sm);
 
-    $('#payModal').classList.add('hidden');
-    pendingOrder = null;
+    const modal = $('#payModal');
+    if (modal) modal.classList.add('hidden');
+    app.pendingOrder = null;
 
     const payNames = { wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal', unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡' };
-    toast(`支付成功（${payNames[payMethod] || payMethod}）· 已购票`);
-    makeSeats();
+    app.toast(`支付成功（${payNames[method] || method}）· 已购票`);
+    CanvasRenderer.makeSeats();
     renderOrders();
+    AdminPanel.render();
   }
 
-  /** 取消支付 */
   function cancelPayment() {
-    $('#payModal').classList.add('hidden');
-    pendingOrder = null;
-    toast('已取消支付');
+    A().pendingOrder = null;
+    const modal = $('#payModal');
+    if (modal) modal.classList.add('hidden');
+    A().toast('已取消支付');
   }
 
-  /** 退票 */
   function refundOrder(id) {
-    const list  = orders();
+    const app = A();
+    const list = app.orders();
     const order = list.find(x => x.id === id);
     if (!order) return;
 
-    // 释放座位
-    const sm = soldMap();
+    const sm = app.soldMap();
     sm[order.hall] = (sm[order.hall] || []).filter(x => !order.seats.includes(x));
-    write(STORE.sold, sm);
+    app.write(app.STORE.sold, sm);
     order.status = '已退票';
+    app.write(app.STORE.orders, list);
 
-    write(STORE.orders, list);
-    toast('已退票');
-    makeSeats();
+    app.toast('已退票');
+    CanvasRenderer.makeSeats();
     renderOrders();
+    AdminPanel.render();
   }
 
-  /** 渲染订单列表 */
   function renderOrders() {
-    const u    = user();
-    const list = orders().filter(o => u && (u.role === 'admin' || o.user === u.name));
+    const app = A();
+    const u = app.user();
+    const list = app.orders().filter(o => u && (u.role === 'admin' || o.user === u.name));
+    const orderList = $('#orderList');
+    if (!orderList) return;
 
     if (!list.length) {
-      $('#orderList').innerHTML = '<div class="sub">暂无订单，完成一次选座后订单会出现在这里。</div>';
+      orderList.innerHTML = '<div class="sub">暂无订单，完成一次选座后订单会出现在这里。</div>';
     } else {
-      $('#orderList').innerHTML = list.map(o => `
+      orderList.innerHTML = list.map(o => `
         <div class="order">
-          <div><b>${o.hallName}</b><div class="sub">${labelSeats(o.seats)}</div></div>
+          <div><b>${o.hallName}</b><div class="sub">${RecommendEngine.labelSeats(o.seats)}</div></div>
           <div>${o.time}</div>
           <div class="pill" style="${o.status === '已购票' ? 'background:#1a2e29;color:#66e4aa' : 'background:#2a1a1a;color:#ff9ea5'}">${o.status}${o.payMethod ? ' · ' + ({wechat:'微信',alipay:'支付宝',paypal:'PayPal',unionpay:'云闪付',applepay:'Apple Pay',card:'银行卡'}[o.payMethod]||o.payMethod) : ''}</div>
           <div>¥${o.amount}</div>
@@ -2080,181 +1569,30 @@ body.colorblind {
         </div>
       `).join('');
 
-      $('#orderList').querySelectorAll('button').forEach(b =>
+      orderList.querySelectorAll('button').forEach(b =>
         b.onclick = () => refundOrder(b.dataset.order)
       );
     }
 
-    renderAdmin();
+    AdminPanel.render();
   }
 
-  /* ==================== 管理后台 ==================== */
-  function renderAdmin() {
-    const list  = orders();
-    const users = read(STORE.users, {});
-    const userCount = Object.keys(users).length - 1; // 排除默认 admin
+  /* ==================== 票型成员列表 ==================== */
 
-    $('#statUsers').textContent  = userCount;
-    $('#statOrders').textContent = list.filter(o => o.status === '已购票').length;
-    $('#statSold').textContent   = Object.values(soldMap()).reduce((n, a) => n + a.length, 0);
-
-    // 订单表格
-    if (list.length) {
-      $('#adminOrders').innerHTML = list.map(o =>
-        `<tr><td>${o.id}</td><td>${o.user}</td><td>${o.hallName}</td><td>${labelSeats(o.seats)}</td><td>${o.status}</td><td>¥${o.amount}</td></tr>`
-      ).join('');
-    } else {
-      $('#adminOrders').innerHTML = '<tr><td colspan="6" class="sub">暂无订单</td></tr>';
-    }
-
-    // 用户列表（排除默认 admin，排除空 key）
-    const userList = Object.entries(users).filter(([name]) => name !== 'admin' && name);
-
-    if (userList.length) {
-      const roleBadge = role => role === 'admin'
-        ? '<span style="color:var(--cyan);font-weight:700">管理员</span>'
-        : '<span style="color:#aab5c9">普通会员</span>';
-
-      $('#adminUsers').innerHTML = userList
-        .sort((a, b) => a[0].localeCompare(b[0], 'zh'))
-        .map(([name, info]) => {
-          const initial = name.slice(0, 1).toUpperCase();
-          const avatarBg = info.role === 'admin'
-            ? 'linear-gradient(135deg,var(--cyan),var(--blue))'
-            : 'linear-gradient(135deg,var(--purple),#555)';
-          const orderCount = list.filter(o => o.user === name && o.status === '已购票').length;
-
-          return `<tr>
-            <td><div style="width:32px;height:32px;border-radius:50%;background:${avatarBg};display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff">${initial}</div></td>
-            <td><b>${name}</b><div class="sub">${orderCount} 笔有效订单</div></td>
-            <td>${roleBadge(info.role)}</td>
-            <td>${info.member ? '<span style="color:var(--green)">已激活</span>' : '<span style="color:var(--muted)">未激活</span>'}</td>
-            <td>—</td>
-          </tr>`;
-        }).join('');
-    } else {
-      $('#adminUsers').innerHTML = '<tr><td colspan="5" class="sub">暂无注册用户</td></tr>';
-    }
-  }
-
-  /* ==================== 热度地图 ==================== */
-  function drawHeat() {
-    const w = heatCanvas.clientWidth, h = heatCanvas.clientHeight;
-    if (!w) return;
-
-    hctx.clearRect(0, 0, w, h);
-
-    // 银幕标示
-    hctx.fillStyle = '#dbeafe';
-    hctx.textAlign = 'center';
-    hctx.font      = '11px Arial';
-    hctx.fillText('银幕 SCREEN', w / 2, 25);
-    hctx.fillStyle = '#7c8aa5';
-    hctx.fillRect(w * 0.18, 34, w * 0.64, 4);
-
-    // 生成热度数据
-    const H    = halls[heatHall];
-    const temp = [];
-    for (let row = 1; row <= 10; row++) {
-      for (let col = 1; col <= H.cols; col++) {
-        temp.push({ row, col });
-      }
-    }
-    seatGeometry(temp, H, w, h - 30);
-
-    const weekend = heatDay >= 5 ? 12 : 0;
-
-    temp.forEach(s => {
-      const center  = Math.abs(s.col - (H.cols + 1) / 2) / (H.cols / 2);
-      const rowBest = Math.abs(s.row - 6);
-      const noise   = Math.sin((s.row * 17 + s.col * 11 + heatDay * 23)) * 0.08;
-      const heat    = 0.92 - center * 0.42 - rowBest * 0.065 + weekend / 100 + noise;
-
-      // 热力图三色分层
-      hctx.fillStyle = heat > 0.72 ? '#ef4444' : heat > 0.53 ? '#facc15' : '#3b82f6';
-      hctx.globalAlpha = 0.78;
-      roundRect(hctx, s.x - s.r, s.y + 30 - s.r, s.r * 2, s.r * 2, 3);
-      hctx.fill();
-    });
-
-    hctx.globalAlpha = 1;
-  }
-
-  /** 构建日期选择按钮 */
-  function buildWeek() {
-    const names = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    $('#week').innerHTML = names
-      .map((n, i) => `<button data-day="${i}" class="${i === heatDay ? 'active' : ''}">${n}</button>`)
-      .join('');
-
-    $('#week').querySelectorAll('button').forEach(b =>
-      b.onclick = () => {
-        heatDay = +b.dataset.day;
-        buildWeek();
-        drawHeat();
-      }
-    );
-  }
-
-  /* ==================== 认证（登录 / 注册） ==================== */
-  function openAuth() {
-    authMode = 'login';
-    syncAuth();
-    $('#authModal').classList.remove('hidden');
-  }
-
-  function syncAuth() {
-    const reg = authMode === 'register';
-    $('#loginTab').classList.toggle('active', !reg);
-    $('#registerTab').classList.toggle('active', reg);
-    $('#confirmLabel').classList.toggle('hidden', !reg);
-    $('#authConfirm').classList.toggle('hidden', !reg);
-    $('#authSubmit').textContent = reg ? '注册并登录' : '登录';
-    $('#authError').textContent = '';
-  }
-
-  function submitAuth() {
-    const name  = $('#authUser').value.trim();
-    const pass  = $('#authPass').value;
-    const users = read(STORE.users, {});
-
-    if (!name || pass.length < 4) {
-      $('#authError').textContent = '用户名不能为空，密码至少4位';
-      return;
-    }
-
-    if (authMode === 'register') {
-      if (users[name]) {
-        $('#authError').textContent = '用户名已存在';
-        return;
-      }
-      if (pass !== $('#authConfirm').value) {
-        $('#authError').textContent = '两次密码不一致';
-        return;
-      }
-      users[name] = { password: pass, role: 'user', member: true };
-      write(STORE.users, users);
-    } else {
-      if (!users[name] || users[name].password !== pass) {
-        $('#authError').textContent = '用户名或密码错误';
-        return;
-      }
-    }
-
-    write(STORE.session, { name, role: users[name].role });
-    $('#authModal').classList.add('hidden');
-    syncAccount();
-    toast(`欢迎，${name}`);
-  }
-
-  function syncAccount() {
-    const u = user();
-    $('#accountName').textContent = u ? u.name : '访客';
-    $('#accountRole').textContent = u ? (u.role === 'admin' ? '管理员' : '影院会员') : '请登录';
-    $('#avatar').textContent      = u ? u.name.slice(0, 1).toUpperCase() : '访';
-    $('#logoutBtn').textContent   = u ? '退出' : '登录';
-    $('#adminNav').classList.toggle('hidden', !u || u.role !== 'admin');
-    renderOrders();
+  function buildMemberList(n) {
+    const defaultCat = i => i < 2 ? 'adult' : i === 2 ? 'teen' : 'senior';
+    const memberList = $('#memberList');
+    if (!memberList) return;
+    memberList.innerHTML = Array.from({ length: n }, (_, i) =>
+      `<div class="member-row">
+        <span style="color:#b6c2d8;line-height:38px;white-space:nowrap">成员${i + 1}</span>
+        <select class="full-input member-age" aria-label="年龄类别">
+          <option value="teen" ${defaultCat(i) === 'teen' ? 'selected' : ''}>青少年</option>
+          <option value="adult" ${defaultCat(i) === 'adult' ? 'selected' : ''}>成年人</option>
+          <option value="senior" ${defaultCat(i) === 'senior' ? 'selected' : ''}>老年人</option>
+        </select>
+      </div>`
+    ).join('');
   }
 
   /* ==================== 事件绑定 ==================== */
@@ -2267,253 +1605,211 @@ body.colorblind {
       b.classList.add('active');
       $$('.view').forEach(x => x.classList.remove('active'));
       $(`#view-${b.dataset.view}`).classList.add('active');
-      if (b.dataset.view === 'booking') setTimeout(resize);  // 切回选座→重绘Canvas
-      if (b.dataset.view === 'heat')    setTimeout(resize);
+      if (b.dataset.view === 'booking') setTimeout(() => CanvasRenderer.resize());
+      if (b.dataset.view === 'heat')    setTimeout(() => CanvasRenderer.resize());
       if (b.dataset.view === 'orders')  renderOrders();
-      if (b.dataset.view === 'admin')   renderAdmin();
+      if (b.dataset.view === 'admin')   AdminPanel.render();
     }
   );
 
   // 影厅切换（座位区）
-  $('#hallTabs').querySelectorAll('button').forEach(b =>
-    b.onclick = () => {
-      $('#hallTabs').querySelectorAll('button').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      hall = b.dataset.hall;
-      $('#hallTitle').textContent = `${halls[hall].name} · ${halls[hall].cols * 10}座`;
-      scale = 1; offsetX = 0; offsetY = 0;
-      makeSeats();
-      drawSeats();
-    }
-  );
-
-  // 影厅切换（热度图区）
-  $('#heatHallTabs').querySelectorAll('button').forEach(b =>
-    b.onclick = () => {
-      $('#heatHallTabs').querySelectorAll('button').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      heatHall = b.dataset.hall;
-      drawHeat();
-    }
-  );
-
-  // ====== 票型切换与成员列表 ======
-  function buildMemberList(n) {
-    const defaultCat = i => i < 2 ? 'adult' : i === 2 ? 'teen' : 'senior';
-    $('#memberList').innerHTML = Array.from({ length: n }, (_, i) =>
-      `<div class="member-row">
-        <span style="color:#b6c2d8;line-height:38px;white-space:nowrap">成员${i + 1}</span>
-        <select class="full-input member-age" aria-label="年龄类别">
-          <option value="teen" ${defaultCat(i) === 'teen' ? 'selected' : ''}>青少年</option>
-          <option value="adult" ${defaultCat(i) === 'adult' ? 'selected' : ''}>成年人</option>
-          <option value="senior" ${defaultCat(i) === 'senior' ? 'selected' : ''}>老年人</option>
-        </select>
-      </div>`
-    ).join('');
+  const hallTabs = $('#hallTabs');
+  if (hallTabs) {
+    hallTabs.querySelectorAll('button').forEach(b =>
+      b.onclick = () => {
+        const app = A();
+        const hallKey = b.dataset.hall;
+        hallTabs.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        HallConfig.switchHall(hallKey);
+        const h = HallConfig.get();
+        const hallTitle = $('#hallTitle');
+        if (hallTitle) hallTitle.textContent = `${h.name} · ${h.rows * h.cols}座`;
+        app.scale = 1; app.offsetX = 0; app.offsetY = 0;
+        CanvasRenderer.makeSeats();
+        CanvasRenderer.drawSeats();
+      }
+    );
   }
 
-  $('#ticketChoices').querySelectorAll('.choice').forEach(b =>
-    b.onclick = () => {
-      $('#ticketChoices').querySelectorAll('.choice').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      ticket = b.dataset.ticket;
-      const fixed = +b.dataset.count;
-      $('#familyCountBox').classList.toggle('hidden', ticket !== 'family');
-      $('#groupCountBox').classList.toggle('hidden', ticket !== 'group');
-      if (ticket === 'family') {
-        buildMemberList(+$('#familyCount').value || 3);
-      } else if (ticket === 'group') {
-        buildMemberList(+$('#groupCount').value || 5);
-      } else {
-        buildMemberList(fixed);
+  // 影厅切换（热度图区）
+  const heatHallTabs = $('#heatHallTabs');
+  if (heatHallTabs) {
+    heatHallTabs.querySelectorAll('button').forEach(b =>
+      b.onclick = () => {
+        heatHallTabs.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        A().heatHall = b.dataset.hall;
+        HeatmapEngine.draw();
       }
-    }
-  );
+    );
+  }
 
-  $('#applyFamilyCount').onclick = () => buildMemberList(Math.max(3, Math.min(6, +$('#familyCount').value || 3)));
-  $('#applyGroupCount').onclick  = () => buildMemberList(Math.max(5, Math.min(20, +$('#groupCount').value || 5)));
+  // 票型切换
+  const ticketChoices = $('#ticketChoices');
+  if (ticketChoices) {
+    ticketChoices.querySelectorAll('.choice').forEach(b =>
+      b.onclick = () => {
+        const app = A();
+        ticketChoices.querySelectorAll('.choice').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        app.ticket = b.dataset.ticket;
+        const fixed = +b.dataset.count;
+        const familyBox = $('#familyCountBox');
+        const groupBox = $('#groupCountBox');
+        if (familyBox) familyBox.classList.toggle('hidden', app.ticket !== 'family');
+        if (groupBox) groupBox.classList.toggle('hidden', app.ticket !== 'group');
+        if (app.ticket === 'family') {
+          buildMemberList(+($('#familyCount')?.value) || 3);
+        } else if (app.ticket === 'group') {
+          buildMemberList(+($('#groupCount')?.value) || 5);
+        } else {
+          buildMemberList(fixed);
+        }
+      }
+    );
+  }
+
+  const applyFamily = $('#applyFamilyCount');
+  if (applyFamily) applyFamily.onclick = () => buildMemberList(Math.max(3, Math.min(6, +($('#familyCount')?.value) || 3)));
+  const applyGroup = $('#applyGroupCount');
+  if (applyGroup) applyGroup.onclick = () => buildMemberList(Math.max(5, Math.min(20, +($('#groupCount')?.value) || 5)));
 
   // 主按钮
-  $('#recommendBtn').onclick  = recommend;
-  // 备选方案卡片点击切换
-  $('#opt1').onclick = () => _switchOption(0);
-  $('#opt2').onclick = () => _switchOption(1);
-  $('#opt3').onclick = () => _switchOption(2);
-  // 预订 / 购票 → 弹出支付弹窗
-  $('#buyBtn').onclick = createOrder;
+  const recommendBtn = $('#recommendBtn');
+  if (recommendBtn) recommendBtn.onclick = () => RecommendEngine.recommend();
+  const opt1 = $('#opt1'); if (opt1) opt1.onclick = () => RecommendEngine.switchTo(0);
+  const opt2 = $('#opt2'); if (opt2) opt2.onclick = () => RecommendEngine.switchTo(1);
+  const opt3 = $('#opt3'); if (opt3) opt3.onclick = () => RecommendEngine.switchTo(2);
+  const buyBtn = $('#buyBtn');
+  if (buyBtn) buyBtn.onclick = createOrder;
 
   // 支付方式选择
-  $('#payMethods').querySelectorAll('.pay-method').forEach(b =>
-    b.onclick = () => selectPayMethod(b.dataset.pay)
-  );
+  const payMethods = $('#payMethods');
+  if (payMethods) {
+    payMethods.querySelectorAll('.pay-method').forEach(b =>
+      b.onclick = () => selectPayMethod(b.dataset.pay)
+    );
+  }
 
   // 支付确认 / 取消
-  $('#payConfirmBtn').onclick = confirmPayment;
-  $('#payCancelBtn').onclick  = cancelPayment;
-  $('#clearSeats').onclick    = () => { selected.clear(); recommended.clear(); updateOrder(); drawSeats(); };
-  $('#resetView').onclick     = () => { scale = 1; offsetX = 0; offsetY = 0; drawSeats(); };
+  const payConfirmBtn = $('#payConfirmBtn');
+  if (payConfirmBtn) payConfirmBtn.onclick = confirmPayment;
+  const payCancelBtn = $('#payCancelBtn');
+  if (payCancelBtn) payCancelBtn.onclick = cancelPayment;
+  const clearSeats = $('#clearSeats');
+  if (clearSeats) clearSeats.onclick = () => { SeatData.clearSelection(); updateOrder(); CanvasRenderer.drawSeats(); };
+  const resetView = $('#resetView');
+  if (resetView) resetView.onclick = () => { const app = A(); app.scale = 1; app.offsetX = 0; app.offsetY = 0; CanvasRenderer.drawSeats(); };
 
   // 座位模式 / 框选模式
-  $('#normalMode').onclick = () => {
-    dragSelect = false;
-    $('#normalMode').classList.add('active');
-    $('#dragMode').classList.remove('active');
+  const normalMode = $('#normalMode');
+  const dragMode = $('#dragMode');
+  if (normalMode) normalMode.onclick = () => {
+    A().dragSelect = false;
+    normalMode.classList.add('active');
+    if (dragMode) dragMode.classList.remove('active');
   };
-  $('#dragMode').onclick = () => {
-    dragSelect = true;
-    $('#dragMode').classList.add('active');
-    $('#normalMode').classList.remove('active');
+  if (dragMode) dragMode.onclick = () => {
+    A().dragSelect = true;
+    dragMode.classList.add('active');
+    if (normalMode) normalMode.classList.remove('active');
   };
 
   // 认证
-  $('#loginTab').onclick    = () => { authMode = 'login'; syncAuth(); };
-  $('#registerTab').onclick = () => { authMode = 'register'; syncAuth(); };
-  $('#authSubmit').onclick  = submitAuth;
-  $('#authPass').onkeydown  = e => { if (e.key === 'Enter') submitAuth(); };
-  $('#logoutBtn').onclick   = () => {
-    if (user()) { localStorage.removeItem(STORE.session); syncAccount(); toast('已退出登录'); }
-    else openAuth();
+  const loginTab = $('#loginTab');
+  if (loginTab) loginTab.onclick = () => { A().authMode = 'login'; AuthPanel.syncAuth(); };
+  const registerTab = $('#registerTab');
+  if (registerTab) registerTab.onclick = () => { A().authMode = 'register'; AuthPanel.syncAuth(); };
+  const authSubmit = $('#authSubmit');
+  if (authSubmit) authSubmit.onclick = () => AuthPanel.submitAuth();
+  const authPass = $('#authPass');
+  if (authPass) authPass.onkeydown = e => { if (e.key === 'Enter') AuthPanel.submitAuth(); };
+  const logoutBtn = $('#logoutBtn');
+  if (logoutBtn) logoutBtn.onclick = () => {
+    const app = A();
+    if (app.user()) { localStorage.removeItem(app.STORE.session); AuthPanel.syncAccount(); app.toast('已退出登录'); }
+    else AuthPanel.openAuth();
   };
 
   // 无障碍
-  $('#accessBtn').onclick = () => $('#accessPanel').classList.toggle('hidden');
+  const accessBtn = $('#accessBtn');
+  if (accessBtn) accessBtn.onclick = () => {
+    const panel = $('#accessPanel');
+    if (panel) panel.classList.toggle('hidden');
+  };
 
-  const acc = read(STORE.access, {});
-  [['largeText',  'large-text'],
-   ['contrast',   'high-contrast'],
+  const app = A();
+  const acc = app.read(app.STORE.access, {});
+  [['largeText', 'large-text'],
+   ['contrast', 'high-contrast'],
    ['colorblind', 'colorblind']].forEach(([id, cls]) => {
     const el = $('#' + id);
+    if (!el) return;
     el.checked = !!acc[id];
     document.body.classList.toggle(cls, el.checked);
     el.onchange = () => {
       document.body.classList.toggle(cls, el.checked);
-      const a = read(STORE.access, {});
+      const a = app.read(app.STORE.access, {});
       a[id] = el.checked;
-      write(STORE.access, a);
-      resize();
+      app.write(app.STORE.access, a);
+      CanvasRenderer.resize();
     };
   });
 
-  $('#voice').checked = !!acc.voice;
-  $('#voice').onchange = () => {
-    const a = read(STORE.access, {});
-    a.voice = $('#voice').checked;
-    write(STORE.access, a);
-    voice('语音提示已开启');
-  };
+  const voiceEl = $('#voice');
+  if (voiceEl) {
+    voiceEl.checked = !!acc.voice;
+    voiceEl.onchange = () => {
+      const a = app.read(app.STORE.access, {});
+      a.voice = voiceEl.checked;
+      app.write(app.STORE.access, a);
+      app.voice('语音提示已开启');
+    };
+  }
 
   // 管理后台 — 重置数据
-  $('#resetData').onclick = () => {
+  const resetData = $('#resetData');
+  if (resetData) resetData.onclick = () => {
     if (confirm('确定重置所有演示订单和售座数据吗？')) {
-      write(STORE.orders, []);
-      write(STORE.sold, {});
-      _currentPreset = null;
-      _updatePresetUI();
-      makeSeats();
+      app.write(app.STORE.orders, []);
+      app.write(app.STORE.sold, {});
+      CanvasRenderer.makeSeats();
       renderOrders();
-      toast('演示数据已重置');
+      AdminPanel._applyPreset('empty');
+      app.toast('演示数据已重置');
     }
   };
 
-  // ========== 场景预设 ==========
-  let _currentPreset = null;
-
-  /** 按预设模式生成单个影厅的已售座位 id 列表 */
-  function _generatePresetForHall(mode, H, hallKey) {
-    const total = H.cols * H.rows;
-    const soldIds = [];
-    const centerCol = (H.cols + 1) / 2;
-    const midRow = Math.ceil(H.rows / 2);
-
-    // 不同影厅 + 不同模式的种子，保证可复现
-    const seeds = { weekend: 42, packed: 77, weekday: 13 };
-    let seed = (seeds[mode] || 42) + H.cols * 100 + H.rows * 7 + (hallKey.charCodeAt(0) || 0) * 31;
-    const rng = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };
-
-    const target = mode === 'weekend' ? Math.floor(total * 0.32) :
-                   mode === 'packed'  ? Math.floor(total * 0.48) :
-                                        Math.floor(total * 0.20);
-
-    const scored = [];
-    for (let row = 1; row <= H.rows; row++) {
-      for (let col = 1; col <= H.cols; col++) {
-        const centerBonus  = 1 - Math.abs(col - centerCol) / (H.cols / 2) * 0.7;
-        const rowBonus     = 1 - Math.abs(row - midRow) / (H.rows / 2) * 0.5;
-        const priority     = mode === 'weekend' ? centerBonus * 0.7 + rowBonus * 0.3 + rng() * 0.3 :
-                             mode === 'packed'  ? centerBonus * 0.8 + rowBonus * 0.4 + rng() * 0.2 :
-                                                   rng(); // 工作日随机
-        scored.push({ id: `${row}-${col}`, priority });
-      }
-    }
-
-    scored.sort((a, b) => b.priority - a.priority);
-    for (let i = 0; i < target; i++) soldIds.push(scored[i].id);
-
-    return soldIds;
-  }
-
-  /** 应用场景预设 — 三个影厅同时生效 */
-  function _applyPreset(mode) {
-    if (mode === 'clear') {
-      write(STORE.sold, {});
-      _currentPreset = null;
-    } else {
-      const sm = soldMap();
-      // 遍历全部三个影厅，各自生成预设
-      Object.entries(halls).forEach(([key, H]) => {
-        sm[key] = _generatePresetForHall(mode, H, key);
-      });
-      write(STORE.sold, sm);
-      _currentPreset = mode;
-    }
-    _updatePresetUI();
-    makeSeats();
-    drawSeats();
-    renderOrders();
-  }
-
-  /** 刷新预设卡片状态和信息栏 */
-  function _updatePresetUI() {
-    const labels = { weekend: '周末黄金场', weekday: '工作日冷场', packed: '满场拥挤' };
-
-    // 高亮当前预设卡片
-    document.querySelectorAll('#view-admin .preset-card').forEach(c =>
-      c.classList.toggle('applied', c.id === `preset-${_currentPreset}`)
-    );
-
-    // 信息栏 — 显示三个影厅总已售数
-    const sm = soldMap();
-    const totalSold = Object.values(sm).reduce((n, arr) => n + arr.length, 0);
-    const totalAll = Object.values(halls).reduce((n, H) => n + H.cols * H.rows, 0);
-    const label = _currentPreset ? labels[_currentPreset] : '无预设';
-    const el = document.getElementById('presetLabel');
-    if (el) el.textContent = label;
-    const soldEl = document.getElementById('presetSoldCount');
-    if (soldEl) soldEl.textContent = totalSold;
-    const totalEl = document.getElementById('presetTotalCount');
-    if (totalEl) totalEl.textContent = totalAll;
-  }
-
-  // 预设按钮事件绑定
+  // 预设按钮
   document.querySelectorAll('#view-admin .preset-btn').forEach(b =>
-    b.onclick = () => _applyPreset(b.dataset.preset)
+    b.onclick = () => AdminPanel._applyPreset(b.dataset.preset)
   );
 
-  // 更新 renderAdmin 中也刷新预设信息
-  const _origRenderAdmin = renderAdmin;
-  renderAdmin = function () {
-    _origRenderAdmin();
-    _updatePresetUI();
-  };
+  /* ==================== EventBus 监听 ==================== */
+  if (typeof EventBus !== 'undefined') {
+    EventBus.on('canvas:redraw', () => CanvasRenderer.drawSeats());
+    EventBus.on('seats:changed', () => updateOrder());
+    EventBus.on('order:changed', () => {
+      CanvasRenderer.makeSeats();
+      renderOrders();
+    });
+  }
 
   /* ==================== 启动 ==================== */
+  A().initCanvas();
+  InteractionLayer.init(A().canvas);
   buildMemberList(1);
-  buildWeek();
-  makeSeats();
-  syncAccount();
-  window.addEventListener('resize', resize);
-  setTimeout(resize, 50);
-  if (user()) $('#authModal').classList.add('hidden');
+  HeatmapEngine.buildWeek();
+  CanvasRenderer.makeSeats();
+  CanvasRenderer.drawSeats();
+  AuthPanel.syncAccount();
+  window.addEventListener('resize', () => CanvasRenderer.resize());
+  setTimeout(() => CanvasRenderer.resize(), 50);
+  if (A().user()) {
+    const modal = $('#authModal');
+    if (modal) modal.classList.add('hidden');
+  }
 })();
 </script>
 </body>
