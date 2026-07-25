@@ -1314,7 +1314,10 @@ body.colorblind {
     <!-- 支付二维码 -->
     <div class="pay-qr" id="payQr">
       <div id="qrCodeBox" style="display:inline-block"></div>
-      <div class="sub" style="margin-top:6px">请在手机端完成扫码支付</div>
+      <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        请在手机端完成扫码支付
+      </div>
     </div>
 
     <div class="error" id="payError"></div>
@@ -1992,46 +1995,15 @@ body.colorblind {
     renderQrCode(method);
   }
 
-  /** 生成各支付方式对应的装饰二维码（21x21 网格 + 定位图案） */
+  /** 生成真实二维码（通过 qrserver API） */
   function renderQrCode(method) {
     const box = document.getElementById('qrCodeBox');
     if (!box) return;
-    const S = 21, C = 7, G = 3, W = S * C + G * 2;
-
-    // 用 method 名做 hash 种子
-    let h = 0;
-    for (let i = 0; i < method.length; i++) h = ((h << 5) - h + method.charCodeAt(i)) | 0;
-
-    // 三个 7x7 定位图案
-    const fp = new Set();
-    const corners = [[0, 0], [S - 7, 0], [0, S - 7]];
-    corners.forEach(([ox, oy]) => {
-      for (let dy = 0; dy < 7; dy++)
-        for (let dx = 0; dx < 7; dx++)
-          if (dy === 0 || dy === 6 || dx === 0 || dx === 6 || (dy >= 2 && dy <= 4 && dx >= 2 && dx <= 4))
-            fp.add(`${ox + dx},${oy + dy}`);
-    });
-
-    // 时序线（横纵各一条，间隔填充）
-    for (let i = 8; i < S - 8; i++) {
-      if (i % 2 === 0) { fp.add(`${i},6`); fp.add(`6,${i}`); }
-    }
-
-    // 伪随机填充数据区
-    const bits = [];
-    for (let i = 0; i < 32; i++) { h = ((h << 7) ^ (h >>> 25)) * 0x5bd1e995; bits.push(Math.abs(h)); }
-    let bi = 0, bx = 0;
-    function nb() { if (bx >= 32) { bi++; bx = 0; } return (bits[bi] >>> bx++) & 1; }
-
-    let cells = '';
-    for (let y = 0; y < S; y++)
-      for (let x = 0; x < S; x++)
-        if (!fp.has(`${x},${y}`) && nb()) cells += `<rect x="${G + x * C}" y="${G + y * C}" width="${C}" height="${C}"/>`;
-
-    box.innerHTML = `<svg viewBox="0 0 ${W} ${W}" width="160" height="160" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${W}" height="${W}" rx="8" fill="#fff"/>
-      <g fill="#000">${[...fp].map(k => { const [x, y] = k.split(','); return `<rect x="${G + +x * C}" y="${G + +y * C}" width="${C}" height="${C}"/>`; }).join('')}${cells}</g>
-    </svg>`;
+    const names = { wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal', unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡' };
+    const amount = pendingOrder ? pendingOrder.amount : 0;
+    const data = `https://www.tsinghua.edu.cn\n支付方式：${names[method] || method}\n金额：¥${amount}\n订单号：SC${Date.now().toString().slice(-9)}`;
+    const url = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(data)}`;
+    box.innerHTML = `<img src="${url}" width="160" height="160" alt="扫码支付" style="display:block;border-radius:8px">`;
   }
 
   /** 确认支付 */
