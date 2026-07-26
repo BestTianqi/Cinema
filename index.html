@@ -375,6 +375,52 @@ button { cursor: pointer; }
   padding: 12px;
   margin-top: 12px;
 }
+
+/* AI 观影顾问 */
+.ai-advisor { margin-top: 4px; }
+.ai-input-row {
+  display: grid;
+  grid-template-columns: 1fr 56px;
+  gap: 6px;
+}
+.ai-input-row .choice {
+  padding: 10px 0;
+  text-align: center;
+  font-weight: 700;
+  color: var(--cyan);
+  border-color: #1f4d5c;
+}
+.ai-reply {
+  background: #0a1626;
+  border: 1px solid #1f4d5c;
+  border-left: 3px solid var(--cyan);
+  border-radius: 10px;
+  padding: 11px 13px;
+  margin-top: 9px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: #c3d0e6;
+}
+.ai-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.ai-suggest button {
+  background: #0b1320;
+  border: 1px solid var(--line);
+  color: #8a97ad;
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: .15s;
+}
+.ai-suggest button:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
 .recommend b { color: var(--cyan); }
 .recommend p {
   margin: 6px 0 0;
@@ -1008,6 +1054,24 @@ body.colorblind {
             <!-- 推荐按钮 -->
             <button class="primary" id="recommendBtn">智能推荐座位</button>
 
+            <!-- AI 观影顾问（加分项） -->
+            <div class="ai-advisor">
+              <div class="section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">
+                <span style="color:var(--cyan)">✦</span> AI 观影顾问
+              </div>
+              <div class="sub" style="font-size:11px;margin-bottom:8px">用一句话描述需求，自动为您选座</div>
+              <div class="ai-input-row">
+                <input class="full-input" id="aiInput" placeholder="如：两个大学生周末看科幻片">
+                <button class="choice" id="aiAskBtn">问</button>
+              </div>
+              <div class="ai-reply hidden" id="aiReply"></div>
+              <div class="ai-suggest">
+                <button data-q="两个大学生看科幻片">两个大学生看科幻</button>
+                <button data-q="带爸妈和孩子一家四口">带爸妈和孩子</button>
+                <button data-q="八个同事团建">八个同事团建</button>
+              </div>
+            </div>
+
             <!-- 推荐结果 -->
             <div class="recommend hidden" id="recommendBox">
               <b id="recommendTitle"></b>
@@ -1372,6 +1436,7 @@ body.colorblind {
 <script src="js/render/canvasRenderer.js"></script>
 <script src="js/render/interactionLayer.js"></script>
 <script src="js/engine/recommendEngine.js"></script>
+<script src="js/engine/aiAdvisor.js"></script>
 <script src="js/engine/heatmapEngine.js"></script>
 <script src="js/ui/authPanel.js"></script>
 <script src="js/ui/adminPanel.js"></script>
@@ -1544,6 +1609,25 @@ body.colorblind {
   // 主按钮
   const recommendBtn = $('#recommendBtn');
   if (recommendBtn) recommendBtn.onclick = () => RecommendEngine.recommend();
+
+  // AI 观影顾问
+  const aiAskBtn = $('#aiAskBtn');
+  const aiInput = $('#aiInput');
+  function askAdvisor() {
+    const text = aiInput ? aiInput.value.trim() : '';
+    if (!text) { A().toast('请输入您的观影需求'); return; }
+    const res = AIAdvisor.consult(text);
+    const replyEl = $('#aiReply');
+    if (res && replyEl) {
+      replyEl.classList.remove('hidden');
+      replyEl.innerHTML = res.reply;
+    }
+  }
+  if (aiAskBtn) aiAskBtn.onclick = askAdvisor;
+  if (aiInput) aiInput.onkeydown = e => { if (e.key === 'Enter') askAdvisor(); };
+  $$('.ai-suggest button').forEach(b =>
+    b.onclick = () => { if (aiInput) { aiInput.value = b.dataset.q; askAdvisor(); } }
+  );
   const opt1 = $('#opt1'); if (opt1) opt1.onclick = () => RecommendEngine.switchTo(0);
   const opt2 = $('#opt2'); if (opt2) opt2.onclick = () => RecommendEngine.switchTo(1);
   const opt3 = $('#opt3'); if (opt3) opt3.onclick = () => RecommendEngine.switchTo(2);

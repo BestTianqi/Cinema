@@ -1,19 +1,9 @@
-/* === 智能推荐引擎（成员A） ===
-   设计目标：完全对齐作业模块1要求。
-     观众分三类（按年龄）：少年(<15) / 成年(15~59) / 老年(≥60)。
-     排座硬规则：
-       - 少年：不能坐前 3 排
-       - 老年：不能坐最后 3 排
-       - 成年：可随意坐
-     票型策略：
-       - 个人票：单座，按硬规则+基础评分选最优
-       - 情侣票：同排连续 2 座，优先中间区域
-       - 家庭票：同排连续 N 座，优先中后排
-       - 团体票：成员必须同一排连续，组内有少年/老人需遵循上述硬规则；
-                 找不到同排连续座位时不降级，提示切换更大影厅。
-
-   评分 = 基础观影体验评分（视角/距离/空位）+ 票型加成。
-   候选生成遵循"硬规则筛选 → 票型策略打分 → 取 Top-3"流程。
+/* 智能推荐引擎
+   按作业模块1的要求实现排座：
+     年龄分三档 —— 少年(<15) / 成年(15~59) / 老年(≥60)
+     排座规则 —— 少年不坐前3排、老人不坐后3排、成年人随便坐
+     票型 —— 个人单座；情侣中间连续双座；家庭中后排连续；团体必须同一排连续
+   找不到满足条件的座位时不硬塞，直接提示用户换厅或改人数。
 */
 
 const RecommendEngine = (() => {
@@ -21,30 +11,27 @@ const RecommendEngine = (() => {
   const $  = s => document.querySelector(s);
   const $$ = s => [...document.querySelectorAll(s)];
 
-  /* ---------- 年龄分类（作业阈值） ---------- */
-  /** 年龄 → 类别 teen/adult/senior */
+  // 年龄转类别（作业里的阈值：15岁以下少年，60岁以上老人）
   function classifyAge(age) {
     const n = Number(age);
-    if (!n || n <= 0) return 'adult';   // 未填写按成年处理
+    if (!n || n <= 0) return 'adult';   // 没填年龄就当成年
     if (n < 15) return 'teen';
     if (n >= 60) return 'senior';
     return 'adult';
   }
 
-  /** 某座位对某类别观众是否违反硬规则 */
+  // 某个座位对这个类别的观众是否违规
   function violatesRule(seat, category, totalRows) {
-    if (category === 'teen' && seat.row <= 3) return true;       // 少年不能坐前 3 排
-    if (category === 'senior' && seat.row >= totalRows - 2) return true; // 老年不能坐最后 3 排
+    if (category === 'teen' && seat.row <= 3) return true;              // 少年不坐前3排
+    if (category === 'senior' && seat.row >= totalRows - 2) return true; // 老人不坐后3排
     return false;
   }
 
-  /** 一组座位是否违反任意成员的硬规则 */
+  // 一组座位里有没有人违规（组内有少年就整组不落前3排，有老人就不落后3排）
   function groupViolates(group, categories, totalRows) {
-    // 每个成员（按顺序）对应一个座位，检查是否违规
     for (let i = 0; i < group.length; i++) {
       if (i < categories.length && violatesRule(group[i], categories[i], totalRows)) return true;
     }
-    // 另外只要组内存在该类别人群，则整组所在排都不能落在禁区
     const hasTeen = categories.includes('teen');
     const hasSenior = categories.includes('senior');
     if (hasTeen && group.some(s => s.row <= 3)) return true;
@@ -52,7 +39,7 @@ const RecommendEngine = (() => {
     return false;
   }
 
-  /* ---------- 座位排序标签 ---------- */
+  // 座位号转成"X排Y座"的展示文字
   function labelSeats(ids) {
     if (!ids || !ids.length) return '--';
     return [...ids]
@@ -80,23 +67,22 @@ const RecommendEngine = (() => {
     const avgRow = group.reduce((a, s) => a + s.row, 0) / group.length;
 
     if (ticket === 'couple') {
-      // 情侣：中间区域连续双座 —— 越靠近中轴线加分越高
+      // 情侣越靠中轴线越好
       bonus += Math.round((1 - Math.abs(avgCol - centerCol) / (hall.cols / 2)) * 25);
     } else if (ticket === 'family') {
-      // 家庭：优先中后排（row 在 中排~中后排 区间加分）
+      // 家庭偏好中后排
       const midRow = hall.rows * 0.5;
       if (avgRow >= midRow && avgRow <= hall.rows * 0.75) bonus += 18;
     } else if (ticket === 'group') {
-      // 团体：同排居中（已在候选阶段保证同排连续）
+      // 团体也尽量居中
       bonus += Math.round((1 - Math.abs(avgCol - centerCol) / (hall.cols / 2)) * 15);
     }
-    // 个人票不加票型加成，纯按基础评分（成年"随意坐"）
+    // 个人票不额外加成，直接看体验分
 
     return Math.round(baseAvg + bonus);
   }
 
-  /* ---------- 同排连续座位枚举 ---------- */
-  /** 返回 hall 内所有"从某排某列起、长度 count、同排连续且全部可选"的座位组 */
+  // 找出所有"同排连续 count 个空位"的组合，并按硬规则过滤
   function sameRowRuns(allSeats, hall, count, categories) {
     const runs = [];
     for (let r = 1; r <= hall.rows; r++) {
@@ -115,12 +101,12 @@ const RecommendEngine = (() => {
     return runs;
   }
 
-  /* ---------- 主推荐流程 ---------- */
+  // 主推荐流程
   function recommend() {
     const app = A();
     if (!app.user()) { app.toast('请先登录'); return; }
 
-    // 读取成员：姓名 + 年龄
+    // 读表单里的成员信息（姓名+年龄）
     const rows = $$('#memberList .member-row');
     if (!rows.length) { app.toast('请先选择票型'); return; }
 
@@ -138,29 +124,27 @@ const RecommendEngine = (() => {
 
     const hall = HallConfig.get();
     const H = hall;
-    if (count > H.cols * H.rows) { app.toast('当前放映厅无足够座位'); return; }
+    if (count > H.cols * H.rows) { app.toast('当前放映厅座位不够'); return; }
 
     const seats = SeatData.all();
     const allAvailable = seats.filter(s => !s.sold);
-    if (allAvailable.length < count) { app.toast('当前放映厅剩余空位不足'); return; }
+    if (allAvailable.length < count) { app.toast('剩余空位不够'); return; }
 
     const ticket = app.ticket;
     let candidates = [];
 
     if (count === 1) {
-      // 个人票（情侣/家庭/团体人数调到1时也走此分支）：单座 + 硬规则
+      // 一个人：单座，先按硬规则过滤再按体验分排序
       const valid = allAvailable.filter(s => !violatesRule(s, categories[0], H.rows));
       valid.sort((a, b) =>
         scoreGroup([b], H, seats, ticket, categories) - scoreGroup([a], H, seats, ticket, categories));
       candidates = valid.slice(0, 3).map(g => ({ group: [g], type: 'single', score: scoreGroup([g], H, seats, ticket, categories) }));
     } else {
-      // 多人票：必须同排连续（作业要求）
+      // 多人：必须同排连续（作业要求团体/家庭/情侣都得连着坐）
       const runs = sameRowRuns(seats, H, count, categories);
       if (runs.length === 0) {
-        // 同排连续不可得 —— 不降级
-        const reason = _noRunReason(ticket, categories, H, count);
-        app.toast(reason.toast);
-        // 仍尝试给一个提示性推荐（无候选时清空）
+        // 没有满足条件的连续座位，不硬塞散座
+        app.toast(_noRunReason(ticket, categories, H, count));
         app._topCandidates = [];
         _renderOptions([]);
         _switchOption(-1);
@@ -176,38 +160,36 @@ const RecommendEngine = (() => {
     _renderOptions(candidates);
     _switchOption(0);
 
-    const best = candidates[0];
-    app.toast(_resultToast(ticket, categories, best, H));
+    app.toast(_resultToast(ticket, categories, candidates[0], H));
   }
 
-  /* ---------- 无同排连续候选时的原因文案 ---------- */
+  // 找不到连续座位时的提示文案
   function _noRunReason(ticket, categories, H, count) {
     const hasTeen = categories.includes('teen');
     const hasSenior = categories.includes('senior');
-    let msg = `当前${H.name}无满足「同排连续 ${count} 座」的空位`;
-    if (hasTeen) msg += '，且需避开前 3 排';
-    if (hasSenior) msg += '，且需避开后 3 排';
-    msg += '，请尝试切换更大的放映厅或减少人数';
-    return { toast: msg };
+    let msg = `${H.name}没有连续 ${count} 个空位`;
+    if (hasTeen) msg += '（还要避开前3排）';
+    if (hasSenior) msg += '（还要避开后3排）';
+    msg += '，换个更大的厅或者减少人数试试';
+    return msg;
   }
 
-  /* ---------- 推荐完成提示 ---------- */
+  // 推荐完成后的 toast 文案
   function _resultToast(ticket, categories, best, H) {
-    if (!best) return '暂无可推荐座位';
+    if (!best) return '暂无合适的座位';
     const hasTeen = categories.includes('teen');
     const hasSenior = categories.includes('senior');
     if (ticket === 'group') {
-      if (hasTeen || hasSenior) return '已锁定同排连续座位，并已照顾老年/少年成员的排数限制';
-      return '已锁定同排连续座位';
+      return hasTeen || hasSenior ? '已安排同排连座，并照顾了老人/少年的排数' : '已安排同排连座';
     }
-    if (ticket === 'couple') return '已推荐中间区域连续双座';
-    if (ticket === 'family') return '已推荐中后排连续座位';
-    if (hasTeen) return '已避开前 3 排，为您推荐合适座位';
-    if (hasSenior) return '已避开后 3 排，为您推荐合适座位';
-    return '智能推荐完成';
+    if (ticket === 'couple') return '中间区域连续双座';
+    if (ticket === 'family') return '中后排连续座位';
+    if (hasTeen) return '已避开前3排';
+    if (hasSenior) return '已避开后3排';
+    return '推荐完成';
   }
 
-  /* ---------- 渲染 Top-3 备选卡片 ---------- */
+  // 渲染右侧的备选方案卡片（最多3个）
   function _renderOptions(candidates) {
     const list = $('#optionList');
     const box = $('#recommendBox');
@@ -223,7 +205,7 @@ const RecommendEngine = (() => {
       if (i < candidates.length) {
         card.classList.remove('hidden');
         $(`#optSeats${i + 1}`).textContent = labelSeats(candidates[i].group.map(s => s.id));
-        const typeMap = { 'single': '单座优选', 'same-row': '同排连续' };
+        const typeMap = { 'single': '单座', 'same-row': '同排连续' };
         $(`#optDesc${i + 1}`).textContent = `${typeMap[candidates[i].type] || ''} · ${candidates[i].score}分`;
       } else {
         card.classList.add('hidden');
@@ -231,18 +213,18 @@ const RecommendEngine = (() => {
     }
   }
 
-  /* ---------- 切换到第 idx 个方案并生成逐条理由 ---------- */
+  // 切换到第 idx 个方案，并刷新画布和理由
   function _switchOption(idx) {
     const app = A();
     const candidates = app._topCandidates;
 
-    // idx === -1：无候选，清空推荐
+    // idx < 0 表示没找到合适座位，清空推荐区
     if (idx < 0 || !candidates[idx]) {
       SeatData.setRecommended([]);
       const titleEl = $('#recommendTitle');
       const reasonEl = $('#recommendReason');
-      if (titleEl) titleEl.textContent = '暂无满足条件的推荐方案';
-      if (reasonEl) reasonEl.textContent = '当前影厅没有满足排座规则的连续座位，请切换更大放映厅或调整人数。';
+      if (titleEl) titleEl.textContent = '暂无合适的推荐方案';
+      if (reasonEl) reasonEl.textContent = '当前影厅没有满足排座规则的连续座位，换个更大的厅或调整人数试试。';
       EventBus.emit('seats:changed');
       EventBus.emit('canvas:redraw');
       return;
@@ -258,11 +240,10 @@ const RecommendEngine = (() => {
 
     const seatLabel = labelSeats(candidate.group.map(s => s.id));
     const titleEl = $('#recommendTitle');
-    if (titleEl) titleEl.textContent = `已推荐 ${seatLabel}`;
+    if (titleEl) titleEl.textContent = `推荐 ${seatLabel}`;
 
-    const reason = _buildReason(candidate, app);
     const reasonEl = $('#recommendReason');
-    if (reasonEl) reasonEl.innerHTML = reason;
+    if (reasonEl) reasonEl.innerHTML = _buildReason(candidate, app);
 
     const step2 = $('#step2');
     if (step2) step2.classList.add('done');
@@ -271,7 +252,7 @@ const RecommendEngine = (() => {
     EventBus.emit('canvas:redraw');
   }
 
-  /* ---------- 逐条推荐理由 ---------- */
+  // 拼推荐理由，会说明排数选择的依据
   function _buildReason(candidate, app) {
     const rows = $$('#memberList .member-row');
     const members = rows.map(r => {
@@ -285,37 +266,35 @@ const RecommendEngine = (() => {
     const ticket = app.ticket;
     const H = HallConfig.get();
     const seatRows = [...new Set(candidate.group.map(s => s.row))];
-    const sameRow = seatRows.length === 1;
     const avgRow = candidate.group.reduce((a, s) => a + s.row, 0) / candidate.group.length;
     const avgCol = candidate.group.reduce((a, s) => a + s.col, 0) / candidate.group.length;
     const centerCol = (H.cols + 1) / 2;
 
     const lines = [];
 
-    // 1. 票型/排型说明
+    // 票型对应的排座说明
     if (ticket === 'couple') {
       const offCenter = Math.abs(avgCol - centerCol);
-      lines.push(`<b>情侣票</b>：已安排同排连续双座${offCenter < H.cols * 0.15 ? '，位于影厅中轴线附近，居中视角最佳' : '，尽量靠近中间区域'}`);
+      lines.push(`<b>情侣票</b>：同排连续双座，${offCenter < H.cols * 0.15 ? '在中轴线附近，视角比较正' : '尽量靠中间'}`);
     } else if (ticket === 'family') {
-      lines.push(`<b>家庭票</b>：已安排同排连续 ${candidate.group.length} 座，位于第 ${Math.round(avgRow)} 排（中后排，观影距离适中）`);
+      lines.push(`<b>家庭票</b>：第 ${Math.round(avgRow)} 排连续 ${candidate.group.length} 座（中后排，距离适中）`);
     } else if (ticket === 'group') {
-      lines.push(`<b>团体票</b>：共 ${candidate.group.length} 人已锁定第 ${seatRows[0]} 排连续座位（成员不分开，同一排就座）`);
+      lines.push(`<b>团体票</b>：${candidate.group.length} 人都在第 ${seatRows[0]} 排（同排连座，不分开）`);
     } else {
-      lines.push(`<b>个人票</b>：已按观影体验评分为您挑选最优单座`);
+      lines.push(`<b>个人票</b>：按体验分挑了个不错的座位`);
     }
 
-    // 2. 老人/少年照顾说明
+    // 有没有需要照顾的老人/少年
     const teens = members.filter(m => m.category === 'teen');
     const seniors = members.filter(m => m.category === 'senior');
     if (teens.length) {
-      lines.push(`检测到 <b>${teens.length}</b> 位少年（&lt;15岁），已避开前 3 排以保护视力`);
+      lines.push(`有 <b>${teens.length}</b> 位少年（&lt;15岁），避开了前 3 排`);
     }
     if (seniors.length) {
-      lines.push(`检测到 <b>${seniors.length}</b> 位老年（≥60岁），已避开最后 3 排以方便进出`);
+      lines.push(`有 <b>${seniors.length}</b> 位老人（≥60岁），避开了后 3 排`);
     }
 
-    // 3. 体验分概览
-    lines.push(`综合体验评分 <b style="color:var(--cyan)">${candidate.score}</b> 分`);
+    lines.push(`体验分 <b style="color:var(--cyan)">${candidate.score}</b> 分`);
 
     return lines.join('<br>');
   }
