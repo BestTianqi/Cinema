@@ -13,7 +13,6 @@ const InteractionLayer = (() => {
       const p = point(e);
       const s = hit(p);
       const app = A();
-      const seats = SeatData.all();
 
       if (app.dragSelect && !s) {
         app.pointer = { box: true, start: p, now: p };
@@ -23,11 +22,14 @@ const InteractionLayer = (() => {
           start:  { x: e.clientX, y: e.clientY },
           origin: { x: app.offsetX,  y: app.offsetY },
         };
-      } else if (s && !s.sold) {
+      } else if (s && s.sold) {
+        app.toast('该座位已售出，请选择其他座位');
+      } else if (s) {
         if (!e.ctrlKey && !e.metaKey) SeatData.clearSelection();
         SeatData.toggle(s.id);
         EventBus.emit('seats:changed');
         EventBus.emit('canvas:redraw');
+        app.toast(`已更新选择：${SeatData.labelSeats() || '尚未选择座位'}`);
       }
     });
 
@@ -47,10 +49,16 @@ const InteractionLayer = (() => {
       const seats = SeatData.all();
       if (app.pointer && app.pointer.box) {
         const b = box(app.pointer.start, app.pointer.now);
-        seats
+        const ids = seats
           .filter(s => !s.sold && s.x >= b.x && s.x <= b.x + b.w && s.y >= b.y && s.y <= b.y + b.h)
-          .forEach(s => SeatData.selectBatch([s.id]));
-        EventBus.emit('seats:changed');
+          .map(s => s.id);
+        if (ids.length) {
+          SeatData.selectBatch(ids);
+          EventBus.emit('seats:changed');
+          A().toast(`已框选 ${ids.length} 个座位`);
+        } else {
+          A().toast('框选区域内没有可选座位');
+        }
       }
       app.pointer = null;
       EventBus.emit('canvas:redraw');

@@ -1353,6 +1353,7 @@ body.colorblind {
 <script src="js/ui/authPanel.js"></script>
 <script src="js/ui/adminPanel.js"></script>
 <script src="js/ui/paymentPanel.js"></script>
+<script src="js/ui/accessibilityPanel.js"></script>
 <script src="js/main.js"></script>
 
 <!-- 内联脚本 — 评分显示 + 订单流程 + 事件绑定（胶水代码） -->
@@ -1543,7 +1544,12 @@ body.colorblind {
   const payCancelBtn = $('#payCancelBtn');
   if (payCancelBtn) payCancelBtn.onclick = () => PaymentPanel.cancelPayment();
   const clearSeats = $('#clearSeats');
-  if (clearSeats) clearSeats.onclick = () => { SeatData.clearSelection(); updateOrder(); CanvasRenderer.drawSeats(); };
+  if (clearSeats) clearSeats.onclick = () => {
+    SeatData.clearSelection();
+    EventBus.emit('seats:changed');
+    EventBus.emit('canvas:redraw');
+    A().toast('已清空选座');
+  };
   const resetView = $('#resetView');
   if (resetView) resetView.onclick = () => { const app = A(); app.scale = 1; app.offsetX = 0; app.offsetY = 0; CanvasRenderer.drawSeats(); };
 
@@ -1554,11 +1560,13 @@ body.colorblind {
     A().dragSelect = false;
     normalMode.classList.add('active');
     if (dragMode) dragMode.classList.remove('active');
+    A().toast('已切换为点击选座');
   };
   if (dragMode) dragMode.onclick = () => {
     A().dragSelect = true;
     dragMode.classList.add('active');
     if (normalMode) normalMode.classList.remove('active');
+    A().toast('已切换为框选模式');
   };
 
   // 认证
@@ -1578,45 +1586,13 @@ body.colorblind {
   };
 
   // 无障碍
-  const accessBtn = $('#accessBtn');
-  if (accessBtn) accessBtn.onclick = () => {
-    const panel = $('#accessPanel');
-    if (panel) panel.classList.toggle('hidden');
-  };
-
-  const app = A();
-  const acc = app.read(app.STORE.access, {});
-  [['largeText', 'large-text'],
-   ['contrast', 'high-contrast'],
-   ['colorblind', 'colorblind']].forEach(([id, cls]) => {
-    const el = $('#' + id);
-    if (!el) return;
-    el.checked = !!acc[id];
-    document.body.classList.toggle(cls, el.checked);
-    el.onchange = () => {
-      document.body.classList.toggle(cls, el.checked);
-      const a = app.read(app.STORE.access, {});
-      a[id] = el.checked;
-      app.write(app.STORE.access, a);
-      CanvasRenderer.resize();
-    };
-  });
-
-  const voiceEl = $('#voice');
-  if (voiceEl) {
-    voiceEl.checked = !!acc.voice;
-    voiceEl.onchange = () => {
-      const a = app.read(app.STORE.access, {});
-      a.voice = voiceEl.checked;
-      app.write(app.STORE.access, a);
-      app.voice('语音提示已开启');
-    };
-  }
+  AccessibilityPanel.init();
 
   // 管理后台 — 重置数据
   const resetData = $('#resetData');
   if (resetData) resetData.onclick = () => {
     if (confirm('确定重置所有演示订单和售座数据吗？')) {
+      const app = A();
       app.write(app.STORE.orders, []);
       app.write(app.STORE.sold, {});
       CanvasRenderer.makeSeats();
