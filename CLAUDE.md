@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Key Modules (from README)
 
-1. **Smart Recommendation** — rule engine that recommends seats based on user profile (age, group size, movie genre)
+1. **Smart Recommendation** — recommends seats from per-member **name + numeric age** input. Ages are classified by the assignment's thresholds (teen `<15`, adult `15–59`, senior `≥60`). Hard rules: teens never in the front 3 rows, seniors never in the back 3 rows, adults unrestricted. Ticket-type strategy: couple→middle-area consecutive pair, family→mid/back consecutive, group→**must be same row consecutive** (no fallback). Top-3 candidates with per-rule reasoning text.
 2. **Manual Selection** — click to select, Ctrl+click for multi-select, drag-select (bonus)
 3. **Heatmap** — Canvas-drawn heat distribution overlay (red=hot, yellow=normal, green=cold)
 4. **Experience Scoring** — rates seats on viewing angle, screen distance, surrounding vacancy

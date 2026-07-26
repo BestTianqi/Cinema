@@ -345,10 +345,10 @@ button { cursor: pointer; }
 }
 
 /* 团体成员列表 */
-.members { max-height: 110px; overflow: auto; margin-top: 8px; }
+.members { max-height: 200px; overflow: auto; margin-top: 8px; }
 .member-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 70px;
   gap: 6px;
   margin-bottom: 6px;
 }
@@ -1449,17 +1449,14 @@ body.colorblind {
   /* ==================== 票型成员列表 ==================== */
 
   function buildMemberList(n) {
-    const defaultCat = i => i < 2 ? 'adult' : i === 2 ? 'teen' : 'senior';
     const memberList = $('#memberList');
     if (!memberList) return;
+    // 默认年龄：前两位成年(25)，第三位少年(12)，其后老年(65)
+    const defaultAge = i => i < 2 ? 25 : i === 2 ? 12 : 65;
     memberList.innerHTML = Array.from({ length: n }, (_, i) =>
       `<div class="member-row">
-        <span style="color:#b6c2d8;line-height:38px;white-space:nowrap">成员${i + 1}</span>
-        <select class="full-input member-age" aria-label="年龄类别">
-          <option value="teen" ${defaultCat(i) === 'teen' ? 'selected' : ''}>青少年</option>
-          <option value="adult" ${defaultCat(i) === 'adult' ? 'selected' : ''}>成年人</option>
-          <option value="senior" ${defaultCat(i) === 'senior' ? 'selected' : ''}>老年人</option>
-        </select>
+        <input class="full-input member-name" type="text" placeholder="姓名" value="" aria-label="成员${i + 1}姓名">
+        <input class="full-input member-age" type="number" min="1" max="120" placeholder="年龄" value="${defaultAge(i)}" aria-label="成员${i + 1}年龄">
       </div>`
     ).join('');
   }
