@@ -712,6 +712,20 @@ button { cursor: pointer; }
 .modal-card label { display: block; color: #9ca8bd; font-size: 12px; margin: 11px 0 5px; }
 .hint { font-size: 11px; color: #718099; margin-top: 12px; }
 .error { color: #ff858c; font-size: 12px; min-height: 18px; margin-top: 8px; }
+#forgotLink {
+  display: block; margin: 10px auto 0; text-align: center;
+  font-size: 12px; color: var(--muted);
+  transition: .2s;
+}
+#forgotLink:hover { color: var(--cyan); }
+#backToLogin {
+  display: block; margin: 12px auto 0; text-align: center;
+  font-size: 12px; color: var(--muted);
+  transition: .2s;
+}
+#backToLogin:hover { color: var(--cyan); }
+#sendCodeBtn { transition: .2s; }
+#sendCodeBtn:hover:not(:disabled) { border-color: var(--cyan) !important; background: #101e30; }
 
 
 /* ---- 支付弹窗 ---- */
@@ -1268,33 +1282,48 @@ body.colorblind {
      ================================================================ -->
 <div class="modal" id="authModal">
   <div class="card modal-card">
-    <div class="eyebrow">WELCOME TO SMARTCINEMA</div>
-    <h2>登录后开始智能选座</h2>
-    <div class="sub">新用户注册即可获得会员资格</div>
+    <div class="eyebrow" id="authEyebrow">WELCOME TO SMARTCINEMA</div>
+    <h2 id="authTitle">登录后开始智能选座</h2>
+    <div class="sub" id="authSubtitle">新用户注册即可获得会员资格</div>
 
     <!-- 登录 / 注册 切换 -->
-    <div class="modal-tabs">
+    <div class="modal-tabs" id="authTabs">
       <button id="loginTab" class="active">登录</button>
       <button id="registerTab">注册</button>
     </div>
 
-    <label>用户名</label>
+    <label id="emailLabel" class="hidden">邮箱</label>
+    <input class="full-input hidden" id="authEmail" type="email" autocomplete="email" placeholder="请输入邮箱">
+
+    <label id="userLabel">用户名</label>
     <input class="full-input" id="authUser" autocomplete="username" placeholder="请输入用户名">
 
-    <label>密码</label>
+    <label id="passLabel">密码</label>
     <input class="full-input" id="authPass" type="password" autocomplete="current-password" placeholder="请输入密码">
 
     <label id="confirmLabel" class="hidden">确认密码</label>
     <input class="full-input hidden" id="authConfirm" type="password" placeholder="再次输入密码">
 
+    <!-- 忘记密码区域 -->
+    <div id="forgotSection" class="hidden" style="margin-top:6px">
+      <button class="ghost" id="sendCodeBtn"
+              style="width:100%;text-align:center;color:var(--cyan);border:1px dashed #2a3850;border-radius:10px;padding:10px">发送验证码</button>
+      <label style="margin-top:11px">验证码</label>
+      <input class="full-input" id="authCode" type="text" placeholder="请输入邮箱验证码" maxlength="6" autocomplete="off">
+      <div class="hint" style="margin-top:6px">默认验证码：<b style="color:var(--cyan)">114514</b></div>
+    </div>
+
     <div class="error" id="authError"></div>
 
     <button class="primary" id="authSubmit">登录</button>
 
-    <div class="hint">
+    <div class="hint" id="authHint">
       管理员演示账号：admin　密码：admin123<br>
       普通用户也可直接注册新账号。
     </div>
+
+    <button class="ghost" id="forgotLink">忘记密码？</button>
+    <button class="ghost hidden" id="backToLogin">← 返回登录</button>
   </div>
 </div>
 
@@ -1601,6 +1630,12 @@ body.colorblind {
   if (authSubmit) authSubmit.onclick = () => AuthPanel.submitAuth();
   const authPass = $('#authPass');
   if (authPass) authPass.onkeydown = e => { if (e.key === 'Enter') AuthPanel.submitAuth(); };
+  const forgotLink = $('#forgotLink');
+  if (forgotLink) forgotLink.onclick = () => { A().authMode = 'forgot'; AuthPanel.syncAuth(); };
+  const backToLogin = $('#backToLogin');
+  if (backToLogin) backToLogin.onclick = () => { A().authMode = 'login'; AuthPanel.syncAuth(); };
+  const sendCodeBtn = $('#sendCodeBtn');
+  if (sendCodeBtn) sendCodeBtn.onclick = () => AuthPanel.sendCode();
   const logoutBtn = $('#logoutBtn');
   if (logoutBtn) logoutBtn.onclick = () => {
     const app = A();

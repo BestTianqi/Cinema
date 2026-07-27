@@ -8,7 +8,7 @@ window.CinemaApp = (() => {
   const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
   if (!read(STORE.users, null)) {
-    write(STORE.users, { admin: { password: 'admin123', role: 'admin', member: true } });
+    write(STORE.users, { admin: { password: 'admin123', role: 'admin', member: true, email: 'admin@cinema.com' } });
   }
 
   // DOM 快捷方法
