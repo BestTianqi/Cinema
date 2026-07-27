@@ -14,11 +14,13 @@ const AccessibilityPanel = (() => {
     const app = A();
     const accessBtn = app.$('#accessBtn');
     const panel = app.$('#accessPanel');
+    const careBtn = app.$('#careMode');
 
     if (accessBtn && panel) {
       accessBtn.onclick = () => {
         const isHidden = panel.classList.toggle('hidden');
         accessBtn.setAttribute('aria-expanded', String(!isHidden));
+        if (!isHidden) app.announce('辅助功能设置已打开');
       };
       accessBtn.setAttribute('aria-controls', 'accessPanel');
       accessBtn.setAttribute('aria-expanded', String(panel && !panel.classList.contains('hidden')));
@@ -27,6 +29,11 @@ const AccessibilityPanel = (() => {
     const acc = app.read(app.STORE.access, {});
     options.forEach(opt => bindClassOption(opt, acc));
     bindVoiceOption(acc);
+    syncCareModeState();
+
+    if (careBtn) {
+      careBtn.onclick = () => enableCareMode();
+    }
   }
 
   function bindClassOption(opt, acc) {
@@ -44,6 +51,7 @@ const AccessibilityPanel = (() => {
       applyClass(opt.className, el.checked);
       if (typeof CanvasRenderer !== 'undefined') CanvasRenderer.resize();
       app.toast(`${opt.label}${el.checked ? '已开启' : '已关闭'}`);
+      syncCareModeState();
     };
   }
 
@@ -58,14 +66,47 @@ const AccessibilityPanel = (() => {
       next.voice = el.checked;
       app.write(app.STORE.access, next);
       app.toast(`语音提示${el.checked ? '已开启' : '已关闭'}`);
+      syncCareModeState();
     };
+  }
+
+  function enableCareMode() {
+    const app = A();
+    const next = app.read(app.STORE.access, {});
+    next.largeText = true;
+    next.contrast = true;
+    next.voice = true;
+    app.write(app.STORE.access, next);
+
+    options.forEach(opt => {
+      const el = app.$(`#${opt.id}`);
+      const enabled = !!next[opt.id];
+      if (el) el.checked = enabled;
+      applyClass(opt.className, enabled);
+    });
+
+    const voiceEl = app.$('#voice');
+    if (voiceEl) voiceEl.checked = true;
+    if (typeof CanvasRenderer !== 'undefined') CanvasRenderer.resize();
+    syncCareModeState();
+    app.toast('关怀模式已开启，已放大文字并开启高对比度和语音播报');
+  }
+
+  function syncCareModeState() {
+    const app = A();
+    const careBtn = app.$('#careMode');
+    if (!careBtn) return;
+    const acc = app.read(app.STORE.access, {});
+    const enabled = !!acc.largeText && !!acc.contrast && !!acc.voice;
+    careBtn.classList.toggle('active', enabled);
+    careBtn.setAttribute('aria-pressed', String(enabled));
   }
 
   function applyClass(className, enabled) {
     document.body.classList.toggle(className, enabled);
   }
 
-  return { init };
+  return { init, enableCareMode };
 })();
 
 window.AccessibilityPanel = AccessibilityPanel;

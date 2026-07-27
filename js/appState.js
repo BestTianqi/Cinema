@@ -26,14 +26,22 @@ window.CinemaApp = (() => {
     if (!el) return;
     el.textContent = t;
     el.classList.add('show');
-    voice(t);
+    announce(t);
     setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  function announce(t) {
+    voice(t);
   }
 
   function voice(t) {
     if ($('#voice') && $('#voice').checked && 'speechSynthesis' in window) {
       speechSynthesis.cancel();
-      speechSynthesis.speak(new SpeechSynthesisUtterance(t));
+      const utterance = new SpeechSynthesisUtterance(t);
+      utterance.lang = 'zh-CN';
+      utterance.rate = 0.88;
+      utterance.pitch = 1;
+      speechSynthesis.speak(utterance);
     }
   }
 
@@ -60,7 +68,7 @@ window.CinemaApp = (() => {
     // 工具
     $, $$, STORE, read, write,
     user, orders, soldMap,
-    toast, voice,
+    toast, announce, voice,
 
     // Canvas
     get canvas() { return canvas; },
