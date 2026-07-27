@@ -704,27 +704,67 @@ button { cursor: pointer; }
   z-index: 8;
 }
 .access-btn {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  border: 0;
+  min-width: 132px; height: 52px;
+  border-radius: 999px;
+  border: 2px solid #071017;
   background: var(--cyan);
   color: #051017;
-  font-size: 21px;
+  font-size: 16px;
+  font-weight: 800;
   box-shadow: 0 8px 25px #0008;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .access-panel {
   position: absolute;
   right: 0; bottom: 58px;
-  width: 230px; padding: 14px;
+  width: 330px; padding: 18px;
+}
+.access-title {
+  display: block;
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+.access-desc {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 12px;
 }
 .toggle {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 14px;
   margin: 10px 0;
   font-size: 13px;
 }
+.toggle span {
+  display: grid;
+  gap: 3px;
+}
+.toggle small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
 .toggle input { accent-color: var(--cyan); }
+.access-care {
+  width: 100%;
+  border: 1px solid var(--cyan);
+  border-radius: 12px;
+  background: #102033;
+  color: var(--text);
+  padding: 11px 12px;
+  font-weight: 800;
+  margin: 8px 0 12px;
+}
+.access-care.active {
+  background: var(--cyan);
+  color: #061018;
+}
 
 
 /* ---- 登录 / 注册弹窗 ---- */
@@ -846,8 +886,52 @@ button { cursor: pointer; }
 
 /* ---- 无障碍主题 ---- */
 body.large-text {
-  --scale: 1.18;
-  font-size: 19px;
+  font-size: 22px;
+  line-height: 1.65;
+}
+body.large-text .brand { font-size: 26px; }
+body.large-text .brand small,
+body.large-text .eyebrow,
+body.large-text .choice small,
+body.large-text .hint {
+  font-size: 15px;
+}
+body.large-text .sub,
+body.large-text .selected-list,
+body.large-text .score-detail,
+body.large-text .canvas-tip,
+body.large-text .toggle small {
+  font-size: 17px;
+  line-height: 1.7;
+}
+body.large-text .nav button,
+body.large-text .ghost,
+body.large-text .hall-tabs button,
+body.large-text .tools button,
+body.large-text .primary,
+body.large-text .choice,
+body.large-text .full-input,
+body.large-text .field input,
+body.large-text .field select,
+body.large-text .toggle,
+body.large-text .access-btn,
+body.large-text .access-care {
+  font-size: 20px;
+}
+body.large-text .cinema h1 { font-size: 34px; }
+body.large-text .flow h2,
+body.large-text .mini h2,
+body.large-text .wide-head h1 { font-size: 25px; }
+body.large-text .price { font-size: 34px; }
+body.large-text .toast {
+  font-size: 20px;
+  padding: 16px 24px;
+  max-width: min(680px, calc(100vw - 28px));
+}
+body.large-text button,
+body.large-text input,
+body.large-text select {
+  min-height: 48px;
 }
 body.high-contrast {
   --bg:     #000;
@@ -1318,13 +1402,29 @@ body.colorblind {
      无障碍浮层（右下角固定）
      ================================================================ -->
 <div class="access">
-  <button class="access-btn" id="accessBtn" aria-label="无障碍设置">♿</button>
+  <button class="access-btn" id="accessBtn" aria-label="打开辅助功能设置">
+    <span aria-hidden="true">♿</span><span>辅助功能</span>
+  </button>
   <div class="card access-panel hidden" id="accessPanel">
-    <b>无障碍模式</b>
-    <label class="toggle">大字体    <input type="checkbox" id="largeText"></label>
-    <label class="toggle">高对比度  <input type="checkbox" id="contrast"></label>
-    <label class="toggle">色盲友好  <input type="checkbox" id="colorblind"></label>
-    <label class="toggle">语音提示  <input type="checkbox" id="voice"></label>
+    <b class="access-title">辅助功能设置</b>
+    <div class="access-desc">为老年人、低视力和色觉差异用户优化显示与播报。</div>
+    <button class="access-care" id="careMode" type="button">一键开启关怀模式</button>
+    <label class="toggle">
+      <span>大字体<small>放大页面文字、按钮和座位编号</small></span>
+      <input type="checkbox" id="largeText">
+    </label>
+    <label class="toggle">
+      <span>高对比度<small>增强文字、边框和背景区分</small></span>
+      <input type="checkbox" id="contrast">
+    </label>
+    <label class="toggle">
+      <span>色盲友好<small>调整座位状态颜色，减少误判</small></span>
+      <input type="checkbox" id="colorblind">
+    </label>
+    <label class="toggle">
+      <span>语音播报<small>播报关键操作结果和状态变化</small></span>
+      <input type="checkbox" id="voice">
+    </label>
   </div>
 </div>
 
@@ -1654,10 +1754,10 @@ body.colorblind {
     SeatData.clearSelection();
     EventBus.emit('seats:changed');
     EventBus.emit('canvas:redraw');
-    A().toast('已清空选座');
+    A().toast('已清空所有已选座位');
   };
   const resetView = $('#resetView');
-  if (resetView) resetView.onclick = () => { const app = A(); app.scale = 1; app.offsetX = 0; app.offsetY = 0; CanvasRenderer.drawSeats(); };
+  if (resetView) resetView.onclick = () => { const app = A(); app.scale = 1; app.offsetX = 0; app.offsetY = 0; CanvasRenderer.drawSeats(); app.toast('座位图视图已重置'); };
 
   // 座位模式 / 框选模式
   const normalMode = $('#normalMode');
@@ -1666,13 +1766,13 @@ body.colorblind {
     A().dragSelect = false;
     normalMode.classList.add('active');
     if (dragMode) dragMode.classList.remove('active');
-    A().toast('已切换为点击选座');
+    A().toast('已切换为点击选座模式');
   };
   if (dragMode) dragMode.onclick = () => {
     A().dragSelect = true;
     dragMode.classList.add('active');
     if (normalMode) normalMode.classList.remove('active');
-    A().toast('已切换为框选模式');
+    A().toast('已切换为拖拽框选模式');
   };
 
   // 认证

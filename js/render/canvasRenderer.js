@@ -6,6 +6,7 @@
 const CanvasRenderer = (() => {
   const A = () => window.CinemaApp;
   const getCss = x => getComputedStyle(document.body).getPropertyValue(x).trim();
+  const isLargeText = () => document.body.classList.contains('large-text');
 
   // DPR 自适应 + 重绘座位图 & 热度图
   function resize() {
@@ -74,7 +75,8 @@ const CanvasRenderer = (() => {
       s.x = w / 2 + localX;
       // 弧形：两侧座位往前抬，幅度随 curve 变化
       s.y = baseY + (s.row - 1) * rowGap - Math.pow(normalizedX, 2) * curve;
-      s.r = Math.max(5, Math.min(12, gap * 0.36, rowGap * 0.3));
+      const baseRadius = Math.max(5, Math.min(12, gap * 0.36, rowGap * 0.3));
+      s.r = isLargeText() ? Math.min(baseRadius + 2, 15) : baseRadius;
     });
     return { boundaries };
   }
@@ -107,7 +109,7 @@ const CanvasRenderer = (() => {
 
     ctx.setLineDash([]);
     ctx.fillStyle = '#65738c';
-    ctx.font = '10px Arial';
+    ctx.font = `${isLargeText() ? 15 : 10}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let row = 1; row <= H.rows; row++) {
@@ -138,7 +140,7 @@ const CanvasRenderer = (() => {
     const recommended = SeatData.recommended();
     const geometry = seatGeometry(seats, hall, w, h);
     drawHallGuides(geometry, hall, w, h);
-    ctx.font = `${hall.cols > 20 ? 7 : 9}px Arial`;
+    ctx.font = `${isLargeText() ? (hall.cols > 20 ? 11 : 13) : (hall.cols > 20 ? 7 : 9)}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
