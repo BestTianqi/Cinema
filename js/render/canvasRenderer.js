@@ -1,13 +1,14 @@
-/* === Canvas 座位图渲染 ===
-   负责：DPR 缩放适配、座位布局计算、中轴线/过道/排号标注、座位绘制。
-   通过 SeatData / HallConfig / CinemaApp 获取状态。
+/* Canvas 座位图渲染
+   处理 DPR 缩放、座位坐标计算、银幕/过道/排号标注、座位绘制。
+   状态从 SeatData / HallConfig / CinemaApp 取。
 */
 
 const CanvasRenderer = (() => {
   const A = () => window.CinemaApp;
   const getCss = x => getComputedStyle(document.body).getPropertyValue(x).trim();
+  const isLargeText = () => document.body.classList.contains('large-text');
 
-  /** DPR 自适应 + 重绘座位图 & 热度图 */
+  // DPR 自适应 + 重绘座位图 & 热度图
   function resize() {
     const d = devicePixelRatio || 1;
     const app = A();
@@ -35,7 +36,7 @@ const CanvasRenderer = (() => {
     }
   }
 
-  /** 重新生成座位数组（基于 HallConfig + LocalStorage 已售数据） */
+  // 重新生成座位数组（基于 HallConfig + LocalStorage 已售数据）
   function makeSeats() {
     const hall = HallConfig.get();
 
@@ -48,33 +49,39 @@ const CanvasRenderer = (() => {
     if (typeof EventBus !== 'undefined') EventBus.emit('seats:changed');
   }
 
-  /** 计算座位 Canvas 坐标（分区过道 + 弧形排列） */
+  // 算每个座位在 Canvas 上的坐标。
+  // 弧形排列：越靠两侧的座位越往前移（像真实影院以银幕为圆心呈弧形），
+  // 弧度由 hall.curve 控制，标准厅 12，IMAX 厅 30（弯得更明显）。
   function seatGeometry(seatArr, H, w, h) {
     const margin = w < 560 ? 42 : 60;
     const baseY = 48;
     const rowGap = (h - 96) / (H.rows - 1 || 1);
     const aisleUnits = 1.35;
     const groups = H.groups || [H.cols];
+    const curve = H.curve || 12;
     const boundaries = [];
     groups.slice(0, -1).reduce((sum, size) => {
       boundaries.push(sum + size);
       return sum + size;
     }, 0);
     const slots = H.cols - 1 + boundaries.length * aisleUnits;
-    const widthScale = H.cols === 10 ? 0.68 : H.cols === 20 ? 0.86 : 0.96;
+    // 列数越多整体越窄一点，留出两边排号空间
+    const widthScale = H.cols <= 10 ? 0.68 : H.cols <= 20 ? 0.82 : 0.94;
     const gap = ((w - margin * 2) * widthScale) / (slots || 1);
     seatArr.forEach(s => {
       const passedAisles = boundaries.filter(b => s.col > b).length;
       const localX = (s.col - 1 + passedAisles * aisleUnits - slots / 2) * gap;
       const normalizedX = localX / ((w - margin * 2) / 2 || 1);
       s.x = w / 2 + localX;
-      s.y = baseY + (s.row - 1) * rowGap - Math.pow(normalizedX, 2) * 12;
-      s.r = Math.max(5, Math.min(12, gap * 0.36, rowGap * 0.3));
+      // 弧形：两侧座位往前抬，幅度随 curve 变化
+      s.y = baseY + (s.row - 1) * rowGap - Math.pow(normalizedX, 2) * curve;
+      const baseRadius = Math.max(5, Math.min(12, gap * 0.36, rowGap * 0.3));
+      s.r = isLargeText() ? Math.min(baseRadius + 2, 15) : baseRadius;
     });
     return { boundaries };
   }
 
-  /** 绘制中轴线 + 过道虚线 + 两侧排号 */
+  // 绘制中轴线 + 过道虚线 + 两侧排号
   function drawHallGuides(meta, H, w, h) {
     const ctx = A().ctx;
     if (!ctx) return;
@@ -102,7 +109,7 @@ const CanvasRenderer = (() => {
 
     ctx.setLineDash([]);
     ctx.fillStyle = '#65738c';
-    ctx.font = '10px Arial';
+    ctx.font = `${isLargeText() ? 15 : 10}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let row = 1; row <= H.rows; row++) {
@@ -114,7 +121,7 @@ const CanvasRenderer = (() => {
     ctx.restore();
   }
 
-  /** 绘制座位图主循环 */
+  // 绘制座位图主循环
   function drawSeats() {
     const app = A();
     const ctx = app.ctx;
@@ -133,7 +140,7 @@ const CanvasRenderer = (() => {
     const recommended = SeatData.recommended();
     const geometry = seatGeometry(seats, hall, w, h);
     drawHallGuides(geometry, hall, w, h);
-    ctx.font = `${hall.cols > 20 ? 7 : 9}px Arial`;
+    ctx.font = `${isLargeText() ? (hall.cols > 20 ? 11 : 13) : (hall.cols > 20 ? 7 : 9)}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -171,7 +178,7 @@ const CanvasRenderer = (() => {
     ctx.restore();
   }
 
-  /** 兼容无 roundRect 的浏览器 */
+  // 兼容无 roundRect 的浏览器
   function roundRect(c, x, y, w, h, r) {
     c.beginPath();
     if (c.roundRect) { c.roundRect(x, y, w, h, r); } else { c.rect(x, y, w, h); }

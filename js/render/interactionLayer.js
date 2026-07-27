@@ -25,11 +25,15 @@ const InteractionLayer = (() => {
       } else if (s && s.sold) {
         app.toast('该座位已售出，请选择其他座位');
       } else if (s) {
+        const wasSelected = SeatData.selected().has(s.id);
         if (!e.ctrlKey && !e.metaKey) SeatData.clearSelection();
         SeatData.toggle(s.id);
         EventBus.emit('seats:changed');
         EventBus.emit('canvas:redraw');
-        app.toast(`已更新选择：${SeatData.labelSeats() || '尚未选择座位'}`);
+        const label = `${s.row}排${s.col}座`;
+        const count = SeatData.selectedCount();
+        const action = wasSelected ? '已取消' : '已选择';
+        app.toast(`${action}${label}，当前共选择 ${count} 个座位`);
       }
     });
 
@@ -55,7 +59,7 @@ const InteractionLayer = (() => {
         if (ids.length) {
           SeatData.selectBatch(ids);
           EventBus.emit('seats:changed');
-          A().toast(`已框选 ${ids.length} 个座位`);
+          A().toast(`已框选 ${ids.length} 个可用座位，当前共选择 ${SeatData.selectedCount()} 个座位`);
         } else {
           A().toast('框选区域内没有可选座位');
         }

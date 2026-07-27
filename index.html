@@ -345,10 +345,10 @@ button { cursor: pointer; }
 }
 
 /* 团体成员列表 */
-.members { max-height: 110px; overflow: auto; margin-top: 8px; }
+.members { max-height: 200px; overflow: auto; margin-top: 8px; }
 .member-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 70px;
   gap: 6px;
   margin-bottom: 6px;
 }
@@ -374,6 +374,52 @@ button { cursor: pointer; }
   border-radius: 12px;
   padding: 12px;
   margin-top: 12px;
+}
+
+/* AI 观影顾问 */
+.ai-advisor { margin-top: 4px; }
+.ai-input-row {
+  display: grid;
+  grid-template-columns: 1fr 56px;
+  gap: 6px;
+}
+.ai-input-row .choice {
+  padding: 10px 0;
+  text-align: center;
+  font-weight: 700;
+  color: var(--cyan);
+  border-color: #1f4d5c;
+}
+.ai-reply {
+  background: #0a1626;
+  border: 1px solid #1f4d5c;
+  border-left: 3px solid var(--cyan);
+  border-radius: 10px;
+  padding: 11px 13px;
+  margin-top: 9px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: #c3d0e6;
+}
+.ai-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.ai-suggest button {
+  background: #0b1320;
+  border: 1px solid var(--line);
+  color: #8a97ad;
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: .15s;
+}
+.ai-suggest button:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
 }
 .recommend b { color: var(--cyan); }
 .recommend p {
@@ -658,27 +704,67 @@ button { cursor: pointer; }
   z-index: 8;
 }
 .access-btn {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  border: 0;
+  min-width: 132px; height: 52px;
+  border-radius: 999px;
+  border: 2px solid #071017;
   background: var(--cyan);
   color: #051017;
-  font-size: 21px;
+  font-size: 16px;
+  font-weight: 800;
   box-shadow: 0 8px 25px #0008;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .access-panel {
   position: absolute;
   right: 0; bottom: 58px;
-  width: 230px; padding: 14px;
+  width: 330px; padding: 18px;
+}
+.access-title {
+  display: block;
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+.access-desc {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 12px;
 }
 .toggle {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 14px;
   margin: 10px 0;
   font-size: 13px;
 }
+.toggle span {
+  display: grid;
+  gap: 3px;
+}
+.toggle small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
 .toggle input { accent-color: var(--cyan); }
+.access-care {
+  width: 100%;
+  border: 1px solid var(--cyan);
+  border-radius: 12px;
+  background: #102033;
+  color: var(--text);
+  padding: 11px 12px;
+  font-weight: 800;
+  margin: 8px 0 12px;
+}
+.access-care.active {
+  background: var(--cyan);
+  color: #061018;
+}
 
 
 /* ---- 登录 / 注册弹窗 ---- */
@@ -814,8 +900,52 @@ button { cursor: pointer; }
 
 /* ---- 无障碍主题 ---- */
 body.large-text {
-  --scale: 1.18;
-  font-size: 19px;
+  font-size: 22px;
+  line-height: 1.65;
+}
+body.large-text .brand { font-size: 26px; }
+body.large-text .brand small,
+body.large-text .eyebrow,
+body.large-text .choice small,
+body.large-text .hint {
+  font-size: 15px;
+}
+body.large-text .sub,
+body.large-text .selected-list,
+body.large-text .score-detail,
+body.large-text .canvas-tip,
+body.large-text .toggle small {
+  font-size: 17px;
+  line-height: 1.7;
+}
+body.large-text .nav button,
+body.large-text .ghost,
+body.large-text .hall-tabs button,
+body.large-text .tools button,
+body.large-text .primary,
+body.large-text .choice,
+body.large-text .full-input,
+body.large-text .field input,
+body.large-text .field select,
+body.large-text .toggle,
+body.large-text .access-btn,
+body.large-text .access-care {
+  font-size: 20px;
+}
+body.large-text .cinema h1 { font-size: 34px; }
+body.large-text .flow h2,
+body.large-text .mini h2,
+body.large-text .wide-head h1 { font-size: 25px; }
+body.large-text .price { font-size: 34px; }
+body.large-text .toast {
+  font-size: 20px;
+  padding: 16px 24px;
+  max-width: min(680px, calc(100vw - 28px));
+}
+body.large-text button,
+body.large-text input,
+body.large-text select {
+  min-height: 48px;
 }
 body.high-contrast {
   --bg:     #000;
@@ -935,6 +1065,7 @@ body.colorblind {
               <button data-hall="small"  class="active">小厅 100</button>
               <button data-hall="medium">中厅 200</button>
               <button data-hall="large">大厅 300</button>
+              <button data-hall="imax">IMAX 弧形厅</button>
             </div>
           </div>
 
@@ -1022,6 +1153,24 @@ body.colorblind {
             <!-- 推荐按钮 -->
             <button class="primary" id="recommendBtn">智能推荐座位</button>
 
+            <!-- AI 观影顾问（加分项） -->
+            <div class="ai-advisor">
+              <div class="section-label" style="margin-top:14px;display:flex;align-items:center;gap:6px">
+                <span style="color:var(--cyan)">✦</span> AI 观影顾问
+              </div>
+              <div class="sub" style="font-size:11px;margin-bottom:8px">用一句话描述需求，自动为您选座</div>
+              <div class="ai-input-row">
+                <input class="full-input" id="aiInput" placeholder="如：两个大学生周末看科幻片">
+                <button class="choice" id="aiAskBtn">问</button>
+              </div>
+              <div class="ai-reply hidden" id="aiReply"></div>
+              <div class="ai-suggest">
+                <button data-q="两个大学生看科幻片">两个大学生看科幻</button>
+                <button data-q="带爸妈和孩子一家四口">带爸妈和孩子</button>
+                <button data-q="八个同事团建">八个同事团建</button>
+              </div>
+            </div>
+
             <!-- 推荐结果 -->
             <div class="recommend hidden" id="recommendBox">
               <b id="recommendTitle"></b>
@@ -1102,6 +1251,7 @@ body.colorblind {
             <button data-hall="small" class="active">小厅</button>
             <button data-hall="medium">中厅</button>
             <button data-hall="large">大厅</button>
+            <button data-hall="imax">IMAX</button>
           </div>
         </div>
 
@@ -1266,13 +1416,29 @@ body.colorblind {
      无障碍浮层（右下角固定）
      ================================================================ -->
 <div class="access">
-  <button class="access-btn" id="accessBtn" aria-label="无障碍设置">♿</button>
+  <button class="access-btn" id="accessBtn" aria-label="打开辅助功能设置">
+    <span aria-hidden="true">♿</span><span>辅助功能</span>
+  </button>
   <div class="card access-panel hidden" id="accessPanel">
-    <b>无障碍模式</b>
-    <label class="toggle">大字体    <input type="checkbox" id="largeText"></label>
-    <label class="toggle">高对比度  <input type="checkbox" id="contrast"></label>
-    <label class="toggle">色盲友好  <input type="checkbox" id="colorblind"></label>
-    <label class="toggle">语音提示  <input type="checkbox" id="voice"></label>
+    <b class="access-title">辅助功能设置</b>
+    <div class="access-desc">为老年人、低视力和色觉差异用户优化显示与播报。</div>
+    <button class="access-care" id="careMode" type="button">一键开启关怀模式</button>
+    <label class="toggle">
+      <span>大字体<small>放大页面文字、按钮和座位编号</small></span>
+      <input type="checkbox" id="largeText">
+    </label>
+    <label class="toggle">
+      <span>高对比度<small>增强文字、边框和背景区分</small></span>
+      <input type="checkbox" id="contrast">
+    </label>
+    <label class="toggle">
+      <span>色盲友好<small>调整座位状态颜色，减少误判</small></span>
+      <input type="checkbox" id="colorblind">
+    </label>
+    <label class="toggle">
+      <span>语音播报<small>播报关键操作结果和状态变化</small></span>
+      <input type="checkbox" id="voice">
+    </label>
   </div>
 </div>
 
@@ -1401,6 +1567,7 @@ body.colorblind {
 <script src="js/render/canvasRenderer.js"></script>
 <script src="js/render/interactionLayer.js"></script>
 <script src="js/engine/recommendEngine.js"></script>
+<script src="js/engine/aiAdvisor.js"></script>
 <script src="js/engine/heatmapEngine.js"></script>
 <script src="js/ui/authPanel.js"></script>
 <script src="js/ui/adminPanel.js"></script>
@@ -1478,17 +1645,14 @@ body.colorblind {
   /* ==================== 票型成员列表 ==================== */
 
   function buildMemberList(n) {
-    const defaultCat = i => i < 2 ? 'adult' : i === 2 ? 'teen' : 'senior';
     const memberList = $('#memberList');
     if (!memberList) return;
+    // 默认年龄：前两位成年(25)，第三位少年(12)，其后老年(65)
+    const defaultAge = i => i < 2 ? 25 : i === 2 ? 12 : 65;
     memberList.innerHTML = Array.from({ length: n }, (_, i) =>
       `<div class="member-row">
-        <span style="color:#b6c2d8;line-height:38px;white-space:nowrap">成员${i + 1}</span>
-        <select class="full-input member-age" aria-label="年龄类别">
-          <option value="teen" ${defaultCat(i) === 'teen' ? 'selected' : ''}>青少年</option>
-          <option value="adult" ${defaultCat(i) === 'adult' ? 'selected' : ''}>成年人</option>
-          <option value="senior" ${defaultCat(i) === 'senior' ? 'selected' : ''}>老年人</option>
-        </select>
+        <input class="full-input member-name" type="text" placeholder="姓名" value="" aria-label="成员${i + 1}姓名">
+        <input class="full-input member-age" type="number" min="1" max="120" placeholder="年龄" value="${defaultAge(i)}" aria-label="成员${i + 1}年龄">
       </div>`
     ).join('');
   }
@@ -1576,6 +1740,25 @@ body.colorblind {
   // 主按钮
   const recommendBtn = $('#recommendBtn');
   if (recommendBtn) recommendBtn.onclick = () => RecommendEngine.recommend();
+
+  // AI 观影顾问
+  const aiAskBtn = $('#aiAskBtn');
+  const aiInput = $('#aiInput');
+  function askAdvisor() {
+    const text = aiInput ? aiInput.value.trim() : '';
+    if (!text) { A().toast('请输入您的观影需求'); return; }
+    const res = AIAdvisor.consult(text);
+    const replyEl = $('#aiReply');
+    if (res && replyEl) {
+      replyEl.classList.remove('hidden');
+      replyEl.innerHTML = res.reply;
+    }
+  }
+  if (aiAskBtn) aiAskBtn.onclick = askAdvisor;
+  if (aiInput) aiInput.onkeydown = e => { if (e.key === 'Enter') askAdvisor(); };
+  $$('.ai-suggest button').forEach(b =>
+    b.onclick = () => { if (aiInput) { aiInput.value = b.dataset.q; askAdvisor(); } }
+  );
   const opt1 = $('#opt1'); if (opt1) opt1.onclick = () => RecommendEngine.switchTo(0);
   const opt2 = $('#opt2'); if (opt2) opt2.onclick = () => RecommendEngine.switchTo(1);
   const opt3 = $('#opt3'); if (opt3) opt3.onclick = () => RecommendEngine.switchTo(2);
@@ -1600,10 +1783,10 @@ body.colorblind {
     SeatData.clearSelection();
     EventBus.emit('seats:changed');
     EventBus.emit('canvas:redraw');
-    A().toast('已清空选座');
+    A().toast('已清空所有已选座位');
   };
   const resetView = $('#resetView');
-  if (resetView) resetView.onclick = () => { const app = A(); app.scale = 1; app.offsetX = 0; app.offsetY = 0; CanvasRenderer.drawSeats(); };
+  if (resetView) resetView.onclick = () => { const app = A(); app.scale = 1; app.offsetX = 0; app.offsetY = 0; CanvasRenderer.drawSeats(); app.toast('座位图视图已重置'); };
 
   // 座位模式 / 框选模式
   const normalMode = $('#normalMode');
@@ -1612,13 +1795,13 @@ body.colorblind {
     A().dragSelect = false;
     normalMode.classList.add('active');
     if (dragMode) dragMode.classList.remove('active');
-    A().toast('已切换为点击选座');
+    A().toast('已切换为点击选座模式');
   };
   if (dragMode) dragMode.onclick = () => {
     A().dragSelect = true;
     dragMode.classList.add('active');
     if (normalMode) normalMode.classList.remove('active');
-    A().toast('已切换为框选模式');
+    A().toast('已切换为拖拽框选模式');
   };
 
   // 认证
