@@ -30,11 +30,11 @@
   --muted:    #94a0b8;
   --cyan:     #65e7ff;
   --blue:     #6579ff;
-  --green:    #32d583;
-  --yellow:   #fdbf47;
-  --red:      #f35f67;
-  --purple:   #a77dff;
-  --seat:     #32d583;
+  --green:    #b9ead5;
+  --yellow:   #ffd166;
+  --red:      #6b7280;
+  --purple:   #9b6cff;
+  --seat:     #b9ead5;
   --radius:   18px;
   font-size: 16px;
 }
@@ -389,6 +389,23 @@ button { cursor: pointer; }
   box-shadow: 0 8px 25px #65e7ff22;
 }
 .primary:disabled { opacity: .4; cursor: not-allowed; }
+.order-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 15px;
+}
+.order-actions .primary { margin-top: 0; }
+.reserve-btn {
+  background: #101e30;
+  color: var(--cyan);
+  border: 1px solid #31516a;
+  box-shadow: none;
+}
+.reserve-btn:hover:not(:disabled) {
+  border-color: var(--cyan);
+  background: #15304a;
+}
 
 /* 推荐结果卡片 */
 .recommend {
@@ -979,13 +996,19 @@ body.high-contrast {
   --muted:  #ddd;
   --cyan:   #00ffff;
   --blue:   #ffff00;
+  --green:  #fff;
+  --yellow: #ffe600;
+  --red:    #666;
+  --purple: #00ffff;
+  --seat:   #fff;
   background: #000;
 }
 body.colorblind {
-  --green:  #3b82f6;   /* 蓝色 替代 绿色 */
-  --yellow: #f59e0b;
-  --red:    #d946ef;   /* 紫色 替代 红色 */
-  --seat:   #3b82f6;
+  --green:  #9ecae1;   /* 浅蓝：可选 */
+  --yellow: #f0e442;   /* 黄色：已选 */
+  --red:    #555b66;   /* 深灰：已售 */
+  --purple: #cc79a7;   /* 洋红：智能推荐 */
+  --seat:   #9ecae1;
 }
 
 
@@ -1251,10 +1274,13 @@ body.colorblind {
                 <small>合计</small> ¥<span id="totalPrice">0</span>
               </div>
             </div>
-            <button class="primary" id="buyBtn" disabled
-                    style="background:linear-gradient(90deg,#a77dff,#6579ff)">
-              确认购票
-            </button>
+            <div class="order-actions">
+              <button class="primary reserve-btn" id="reserveBtn" disabled>预订座位</button>
+              <button class="primary" id="buyBtn" disabled
+                      style="background:linear-gradient(90deg,#a77dff,#6579ff)">
+                确认购票
+              </button>
+            </div>
           </section>
 
         </aside>
@@ -1656,6 +1682,8 @@ body.colorblind {
     $('#totalPrice').textContent = count * window.CinemaConfig.pricePerSeat;
     const buyBtn = $('#buyBtn');
     if (buyBtn) buyBtn.disabled = count === 0;
+    const reserveBtn = $('#reserveBtn');
+    if (reserveBtn) reserveBtn.disabled = count === 0;
     const step3 = $('#step3');
     if (step3) step3.classList.toggle('done', count > 0);
     calcScore();
@@ -1792,6 +1820,8 @@ body.colorblind {
   const opt3 = $('#opt3'); if (opt3) opt3.onclick = () => RecommendEngine.switchTo(2);
   const buyBtn = $('#buyBtn');
   if (buyBtn) buyBtn.onclick = () => PaymentPanel.createOrder();
+  const reserveBtn = $('#reserveBtn');
+  if (reserveBtn) reserveBtn.onclick = () => PaymentPanel.reserveOrder();
 
   // 支付方式选择
   const payMethods = $('#payMethods');

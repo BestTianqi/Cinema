@@ -27,6 +27,31 @@ const PaymentPanel = (() => {
     showPayModal();
   }
 
+  /** 预订座位：直接生成已预订订单，不进入支付流程 */
+  function reserveOrder() {
+    if (!_requireLogin() || !SeatData.selected().size) return;
+    const app = A();
+    const hall = HallConfig.get();
+    const order = {
+      id: 'SC' + Date.now().toString().slice(-9),
+      user: app.user().name,
+      hall: hall.key,
+      hallName: hall.name,
+      seats: [...SeatData.selected()],
+      status: '已预订',
+      amount: SeatData.selected().size * window.CinemaConfig.pricePerSeat,
+      time: new Date().toLocaleString(),
+    };
+
+    const list = app.orders();
+    list.unshift(order);
+    app.write(app.STORE.orders, list);
+    app.toast('预订成功，可在订单中心取消预订');
+    CanvasRenderer.makeSeats();
+    renderOrders();
+    AdminPanel.render();
+  }
+
   /** 显示支付弹窗 */
   function showPayModal() {
     const app = A();
@@ -151,6 +176,20 @@ const PaymentPanel = (() => {
     if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
+  /** 取消尚未支付的预订 */
+  function cancelReservation(id) {
+    const app = A();
+    const list = app.orders();
+    const order = list.find(x => x.id === id);
+    if (!order || order.status !== '已预订') return;
+
+    order.status = '已取消';
+    app.write(app.STORE.orders, list);
+    app.toast('预订已取消');
+    renderOrders();
+    AdminPanel.render();
+  }
+
   /** 渲染订单列表到 #orderList */
   function renderOrders() {
     const app = A();
@@ -162,26 +201,37 @@ const PaymentPanel = (() => {
     if (!list.length) {
       orderList.innerHTML = '<div class="sub">暂无订单，完成一次选座后订单会出现在这里。</div>';
     } else {
-      orderList.innerHTML = list.map(o => `
+      orderList.innerHTML = list.map(o => {
+        const statusStyle = o.status === '已购票'
+          ? 'background:#1a2e29;color:#66e4aa'
+          : o.status === '已预订'
+            ? 'background:#102a42;color:#76c7ff'
+            : 'background:#2a1a1a;color:#ff9ea5';
+        const action = o.status === '已购票'
+          ? `<button data-order="${o.id}" data-action="refund">退票</button>`
+          : o.status === '已预订'
+            ? `<button data-order="${o.id}" data-action="cancel">取消预订</button>`
+            : '<span></span>';
+        return `
         <div class="order">
           <div><b>${o.hallName}</b><div class="sub">${RecommendEngine.labelSeats(o.seats)}</div></div>
           <div>${o.time}</div>
-          <div class="pill" style="${o.status === '已购票' ? 'background:#1a2e29;color:#66e4aa' : 'background:#2a1a1a;color:#ff9ea5'}">${o.status}${o.payMethod ? ' · ' + ({wechat:'微信',alipay:'支付宝',paypal:'PayPal',unionpay:'云闪付',applepay:'Apple Pay',card:'银行卡'}[o.payMethod]||o.payMethod) : ''}</div>
+          <div class="pill" style="${statusStyle}">${o.status}${o.payMethod ? ' · ' + ({wechat:'微信',alipay:'支付宝',paypal:'PayPal',unionpay:'云闪付',applepay:'Apple Pay',card:'银行卡'}[o.payMethod]||o.payMethod) : ''}</div>
           <div>¥${o.amount}</div>
-          ${o.status === '已购票'
-            ? '<button data-order="' + o.id + '">退票</button>'
-            : '<span></span>'}
+          ${action}
         </div>
-      `).join('');
+      `}).join('');
 
-      orderList.querySelectorAll('button').forEach(b =>
-        b.onclick = () => refundOrder(b.dataset.order)
-      );
+      orderList.querySelectorAll('button').forEach(b => {
+        b.onclick = () => b.dataset.action === 'cancel'
+          ? cancelReservation(b.dataset.order)
+          : refundOrder(b.dataset.order);
+      });
     }
 
     AdminPanel.render();
   }
 
-  return { createOrder, showPayModal, selectPayMethod, renderQrCode, confirmPayment, cancelPayment, refundOrder, renderOrders };
+  return { createOrder, reserveOrder, showPayModal, selectPayMethod, renderQrCode, confirmPayment, cancelPayment, refundOrder, cancelReservation, renderOrders };
 })();
 window.PaymentPanel = PaymentPanel;

@@ -124,11 +124,19 @@ const RecommendEngine = (() => {
 
     const hall = HallConfig.get();
     const H = hall;
-    if (count > H.cols * H.rows) { app.toast('当前放映厅座位不够'); return; }
+    if (count > H.cols * H.rows) {
+      _showNoResult('当前影厅的座位总数不足，请减少人数或更换影厅。');
+      app.toast('暂无合适的座位');
+      return;
+    }
 
     const seats = SeatData.all();
     const allAvailable = seats.filter(s => !s.sold);
-    if (allAvailable.length < count) { app.toast('剩余空位不够'); return; }
+    if (allAvailable.length < count) {
+      _showNoResult(`当前影厅只剩 ${allAvailable.length} 个未售座位，无法安排 ${count} 人。`);
+      app.toast('暂无合适的座位');
+      return;
+    }
 
     const ticket = app.ticket;
     let candidates = [];
@@ -144,10 +152,9 @@ const RecommendEngine = (() => {
       const runs = sameRowRuns(seats, H, count, categories);
       if (runs.length === 0) {
         // 没有满足条件的连续座位，不硬塞散座
-        app.toast(_noRunReason(ticket, categories, H, count));
-        app._topCandidates = [];
-        _renderOptions([]);
-        _switchOption(-1);
+        const reason = _noRunReason(ticket, categories, H, count);
+        _showNoResult(reason);
+        app.toast('暂无合适的座位');
         return;
       }
       candidates = runs
@@ -161,6 +168,22 @@ const RecommendEngine = (() => {
     _switchOption(0);
 
     app.toast(_resultToast(ticket, categories, candidates[0], H));
+  }
+
+  // 统一处理“无可推荐座位”，同时清除上一次的推荐，避免旧结果残留。
+  function _showNoResult(reason) {
+    const app = A();
+    app._topCandidates = [];
+    _renderOptions([]);
+    SeatData.setRecommended([]);
+
+    const titleEl = $('#recommendTitle');
+    const reasonEl = $('#recommendReason');
+    if (titleEl) titleEl.textContent = '暂无合适的座位';
+    if (reasonEl) reasonEl.textContent = reason || '当前影厅没有满足条件的未售座位。';
+
+    EventBus.emit('seats:changed');
+    EventBus.emit('canvas:redraw');
   }
 
   // 找不到连续座位时的提示文案
@@ -216,21 +239,25 @@ const RecommendEngine = (() => {
   // 切换到第 idx 个方案，并刷新画布和理由
   function _switchOption(idx) {
     const app = A();
-    const candidates = app._topCandidates;
+    const candidates = app._topCandidates || [];
 
     // idx < 0 表示没找到合适座位，清空推荐区
     if (idx < 0 || !candidates[idx]) {
-      SeatData.setRecommended([]);
-      const titleEl = $('#recommendTitle');
-      const reasonEl = $('#recommendReason');
-      if (titleEl) titleEl.textContent = '暂无合适的推荐方案';
-      if (reasonEl) reasonEl.textContent = '当前影厅没有满足排座规则的连续座位，换个更大的厅或调整人数试试。';
-      EventBus.emit('seats:changed');
-      EventBus.emit('canvas:redraw');
+      _showNoResult('当前影厅没有满足排座规则的未售座位，请更换影厅或调整人数。');
       return;
     }
 
     const candidate = candidates[idx];
+    const liveSeats = new Map(SeatData.all().map(s => [s.id, s]));
+    const stillAvailable = candidate.group.every(s => {
+      const current = liveSeats.get(s.id);
+      return current && !current.sold;
+    });
+    if (!stillAvailable) {
+      _showNoResult('该方案中的座位刚刚已售出，请重新点击智能推荐。');
+      app.toast('推荐座位已售出，请重新推荐');
+      return;
+    }
     SeatData.setRecommended(candidate.group.map(s => s.id));
 
     for (let i = 0; i < 3; i++) {

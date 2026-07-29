@@ -31,10 +31,12 @@
     // 同步 DOM（与内联脚本兼容）
     const count = SeatData.selectedCount();
     const buyBtn = document.getElementById('buyBtn');
+    const reserveBtn = document.getElementById('reserveBtn');
     const step3 = document.getElementById('step3');
     const step2 = document.getElementById('step2');
 
     if (buyBtn) buyBtn.disabled = count === 0;
+    if (reserveBtn) reserveBtn.disabled = count === 0;
     if (step3) step3.classList.toggle('done', count > 0);
     if (step2) step2.classList.toggle('done', count > 0);
   }

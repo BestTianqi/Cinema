@@ -147,22 +147,45 @@ const CanvasRenderer = (() => {
     ctx.textBaseline = 'middle';
 
     seats.forEach(s => {
+      const isRecommended = recommended.has(s.id);
+      const isSelected = selected.has(s.id);
+      const isPeerLocked = peerLocked.has(s.id);
       let c;
-      if (s.sold)                     c = getCss('--red');
-      else if (selected.has(s.id))    c = getCss('--yellow');
-      else if (recommended.has(s.id)) c = getCss('--purple');
-      else if (peerLocked.has(s.id))  c = '#ff8a3d';   // 他人正在选
-      else                            c = getCss('--green');
+      // 推荐座位也属于已选座位，必须先于 selected 判断，否则推荐紫色不会出现。
+      if (s.sold)                  c = getCss('--red');
+      else if (isRecommended)     c = getCss('--purple');
+      else if (isSelected)        c = getCss('--yellow');
+      else if (isPeerLocked)      c = '#ff8a3d';   // 他人正在选
+      else                         c = getCss('--green');
 
+      ctx.save();
       ctx.fillStyle = c;
-      ctx.globalAlpha = s.sold ? 0.9 : 1;
+      ctx.globalAlpha = s.sold ? 0.82 : 1;
+      if (isRecommended) {
+        ctx.shadowColor = c;
+        ctx.shadowBlur = 9;
+      }
       roundRect(ctx, s.x - s.r, s.y - s.r, s.r * 2, s.r * 2, Math.max(2, s.r * 0.35));
       ctx.fill();
 
-      if (s.r > 8) {
-        ctx.fillStyle = s.sold ? '#fff' : '#071017';
-        ctx.fillText(s.col, s.x, s.y + 0.5);
+      // 除颜色外再用描边区分，保证高对比度和色盲模式下也容易辨认。
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      if (s.sold || isRecommended || isSelected || isPeerLocked) {
+        ctx.strokeStyle = s.sold ? '#d7dce5'
+          : isRecommended ? '#ffffff'
+          : isSelected ? '#7a4b00'
+          : '#ffffff';
+        ctx.lineWidth = isRecommended ? 2.2 : 1.4;
+        roundRect(ctx, s.x - s.r, s.y - s.r, s.r * 2, s.r * 2, Math.max(2, s.r * 0.35));
+        ctx.stroke();
       }
+
+      if (s.r > 8) {
+        ctx.fillStyle = (s.sold || isRecommended || isPeerLocked) ? '#fff' : '#071017';
+        ctx.fillText(s.sold ? '×' : isRecommended ? '★' : s.col, s.x, s.y + 0.5);
+      }
+      ctx.restore();
     });
 
     ctx.globalAlpha = 1;
