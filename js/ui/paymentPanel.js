@@ -118,6 +118,8 @@ const PaymentPanel = (() => {
     CanvasRenderer.makeSeats();
     renderOrders();
     AdminPanel.render();
+    // 通知其他标签页：有座位售出了（多人在线同步）
+    if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
   /** 取消支付 */
@@ -145,6 +147,8 @@ const PaymentPanel = (() => {
     CanvasRenderer.makeSeats();
     renderOrders();
     AdminPanel.render();
+    // 退票后座位释放，同步给其他标签页
+    if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
   /** 渲染订单列表到 #orderList */
