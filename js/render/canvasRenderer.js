@@ -138,6 +138,8 @@ const CanvasRenderer = (() => {
     const seats = SeatData.all();
     const selected = SeatData.selected();
     const recommended = SeatData.recommended();
+    // 别的标签页正在选的座位（多人在线）
+    const peerLocked = (typeof RealtimeSync !== 'undefined') ? RealtimeSync.peerLockedSeats(hall.key) : new Set();
     const geometry = seatGeometry(seats, hall, w, h);
     drawHallGuides(geometry, hall, w, h);
     ctx.font = `${isLargeText() ? (hall.cols > 20 ? 11 : 13) : (hall.cols > 20 ? 7 : 9)}px Arial`;
@@ -146,10 +148,11 @@ const CanvasRenderer = (() => {
 
     seats.forEach(s => {
       let c;
-      if (s.sold)                    c = getCss('--red');
-      else if (selected.has(s.id))   c = getCss('--yellow');
+      if (s.sold)                     c = getCss('--red');
+      else if (selected.has(s.id))    c = getCss('--yellow');
       else if (recommended.has(s.id)) c = getCss('--purple');
-      else                           c = getCss('--green');
+      else if (peerLocked.has(s.id))  c = '#ff8a3d';   // 他人正在选
+      else                            c = getCss('--green');
 
       ctx.fillStyle = c;
       ctx.globalAlpha = s.sold ? 0.9 : 1;

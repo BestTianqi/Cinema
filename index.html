@@ -235,6 +235,29 @@ button { cursor: pointer; }
   font-size: 11px;
   pointer-events: none;
 }
+/* 多人在线同步徽章 */
+.sync-badge {
+  position: absolute;
+  right: 12px; top: 10px;
+  background: #0b142166;
+  border: 1px solid #1f3a2e;
+  color: #8fa9bd;
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 9px;
+  display: flex; align-items: center; gap: 5px;
+}
+.sync-badge b { color: var(--green); }
+.sync-hint {
+  position: absolute;
+  left: 12px; top: 10px;
+  background: #1a1409;
+  border: 1px solid #5a3d1a;
+  color: #ff8a3d;
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 9px;
+}
 
 /* 图例 */
 .legend {
@@ -1076,6 +1099,9 @@ body.colorblind {
           <div class="canvas-wrap">
             <canvas id="seatCanvas"></canvas>
             <div class="canvas-tip">滚轮缩放 · 拖动画布 · 拖拽座位区域可框选</div>
+            <!-- 多人在线同步状态 -->
+            <div class="sync-badge"><span class="dot" style="background:#32d583"></span>在线 <b id="onlineCount">1</b></div>
+            <div class="sync-hint hidden" id="syncHint"></div>
           </div>
 
           <!-- 图例 -->
@@ -1084,6 +1110,7 @@ body.colorblind {
             <span><i class="dot" style="background:var(--yellow)"></i>已选</span>
             <span><i class="dot" style="background:var(--red)"></i>已售</span>
             <span><i class="dot" style="background:var(--purple)"></i>智能推荐</span>
+            <span><i class="dot" style="background:#ff8a3d"></i>他人选中</span>
           </div>
 
           <!-- 工具栏 -->
@@ -1557,6 +1584,7 @@ body.colorblind {
 <script src="js/config.js"></script>
 <script src="js/utils/eventBus.js"></script>
 <script src="js/utils/geometry.js"></script>
+<script src="js/utils/realtimeSync.js"></script>
 <script src="js/data/hallConfig.js"></script>
 <script src="js/data/seatData.js"></script>
 <script src="js/data/orderStorage.js"></script>
@@ -1851,7 +1879,13 @@ body.colorblind {
   /* ==================== EventBus 监听 ==================== */
   if (typeof EventBus !== 'undefined') {
     EventBus.on('canvas:redraw', () => CanvasRenderer.drawSeats());
-    EventBus.on('seats:changed', () => updateOrder());
+    EventBus.on('seats:changed', () => {
+      updateOrder();
+      // 把自己选中的座位广播给其他标签页（多人在线模拟）
+      if (typeof RealtimeSync !== 'undefined') {
+        RealtimeSync.broadcastLock([...SeatData.selected()]);
+      }
+    });
     EventBus.on('order:changed', () => {
       CanvasRenderer.makeSeats();
       PaymentPanel.renderOrders();
@@ -1861,6 +1895,7 @@ body.colorblind {
   /* ==================== 启动 ==================== */
   A().initCanvas();
   InteractionLayer.init(A().canvas);
+  if (typeof RealtimeSync !== 'undefined') RealtimeSync.init();   // 多标签页实时同步
   buildMemberList(1);
   HeatmapEngine.buildWeek();
   CanvasRenderer.makeSeats();

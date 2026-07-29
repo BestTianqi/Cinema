@@ -24,6 +24,10 @@ const InteractionLayer = (() => {
         };
       } else if (s && s.sold) {
         app.toast('该座位已售出，请选择其他座位');
+      } else if (s && typeof RealtimeSync !== 'undefined' &&
+                 RealtimeSync.peerLockedSeats(HallConfig.get().key).has(s.id)) {
+        // 别的标签页正在选这个座，避免冲突
+        app.toast('该座位正被其他用户选中');
       } else if (s) {
         const wasSelected = SeatData.selected().has(s.id);
         if (!e.ctrlKey && !e.metaKey) SeatData.clearSelection();
