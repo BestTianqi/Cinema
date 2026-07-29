@@ -11,6 +11,7 @@ const AuthPanel = (() => {
     app.authMode = 'login';
     const modal = $('#authModal');
     if (modal) modal.classList.remove('hidden');
+    _clearFields();
     syncAuth();
   }
 
@@ -75,8 +76,9 @@ const AuthPanel = (() => {
     const submit = $('#authSubmit');
     if (submit) submit.textContent = mode === 'login' ? '登录' : mode === 'register' ? '注册' : '重置密码';
 
-    // 清空错误和字段
+    // 清空错误
     if ($('#authError')) $('#authError').textContent = '';
+    _clearFields();
   }
 
   function submitAuth() {
@@ -206,7 +208,12 @@ const AuthPanel = (() => {
 
   /* ========== 工具 ========== */
   function _err(msg) { const el = $('#authError'); if (el) el.textContent = msg; }
-  function _close() { const modal = $('#authModal'); if (modal) modal.classList.add('hidden'); }
+  function _close() { _clearFields(); const modal = $('#authModal'); if (modal) modal.classList.add('hidden'); }
+  function _clearFields() {
+    ['authUser', 'authEmail', 'authPass', 'authConfirm', 'authCode'].forEach(id => {
+      const el = $('#' + id); if (el) el.value = '';
+    });
+  }
 
   return { openAuth, syncAuth, submitAuth, sendCode, syncAccount };
 })();
