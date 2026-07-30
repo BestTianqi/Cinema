@@ -34,7 +34,6 @@ js/
   data/
     seatData.js         # 座位状态（单一事实来源）
     hallConfig.js       # 影厅配置管理
-    orderStorage.js     # 订单 CRUD（LocalStorage）
   engine/
     scoreEngine.js      # 观影体验评分引擎
     heatmapEngine.js    # 热度数据计算
@@ -45,7 +44,7 @@ js/
     interactionLayer.js # 悬停/选中交互
   ui/
     recommendPanel.js   # 推荐面板（备选方案渲染）
-    orderPanel.js       # 订单侧栏
+    paymentPanel.js     # 订单、预订、支付与退票
     scorePanel.js       # 评分详情面板
     accessibilityPanel.js # 无障碍模式
   utils/

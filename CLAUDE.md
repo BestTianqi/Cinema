@@ -45,7 +45,6 @@ js/
   data/
     seatData.js        # Seat state (available/recommended/selected/sold)
     hallConfig.js      # Hall layout config (rows, cols, aisles)
-    orderStorage.js    # LocalStorage CRUD for orders
   engine/
     recommendEngine.js # Recommendation rule engine
     scoreEngine.js     # Viewing experience scorer
@@ -56,7 +55,7 @@ js/
     interactionLayer.js# Hover/selection highlight & animation
   ui/
     recommendPanel.js  # User input form + recommendation results
-    orderPanel.js      # Order list sidebar
+    paymentPanel.js    # Current order, reservation, payment, refund UI
     scorePanel.js      # Score detail panel
     accessibilityPanel.js
   utils/

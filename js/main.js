@@ -1,4 +1,4 @@
-/* === main.js — 成员D：架构 + 观影评分 + 订单中心 ===
+/* === main.js — 项目入口与模块协调 ===
    项目入口，负责：
    1. 初始化各模块
    2. 管理模块间事件通信
@@ -26,7 +26,6 @@
   /** 当座位选择变化时重新评分 */
   function onSeatsChanged() {
     ScorePanel.refresh(5);
-    OrderPanel.refreshSelection();
 
     // 同步 DOM（与内联脚本兼容）
     const count = SeatData.selectedCount();
@@ -78,7 +77,7 @@
 
   // ==================== 初始启动 ====================
   initHall(cfg.defaultHall);
-  OrderPanel.renderOrderList();
+  PaymentPanel.renderOrders();
 
   // ==================== 暴露 API ====================
   // 供 index.html 内联脚本或控制台调用
@@ -97,12 +96,13 @@
     refreshScore: () => ScorePanel.refresh(5),
     explain: (result) => ScoreEngine.explain(result),
 
-    // 订单
-    submitOrder: (status) => OrderPanel.submitOrder(status),
-    renderOrders: () => OrderPanel.renderOrderList(),
-    cancelOrder: (id) => OrderPanel.cancelOrder(id),
-    getOrders: () => OrderStorage.allOrders(),
-    activeOrderCount: () => OrderStorage.activeCount(),
+    // 订单（统一使用最新版 PaymentPanel）
+    reserveOrder: () => PaymentPanel.reserveOrder(),
+    createOrder: () => PaymentPanel.createOrder(),
+    renderOrders: () => PaymentPanel.renderOrders(),
+    cancelReservation: (id) => PaymentPanel.cancelReservation(id),
+    refundOrder: (id) => PaymentPanel.refundOrder(id),
+    getOrders: () => window.CinemaApp.orders(),
 
     // 影厅
     switchHall: (key) => EventBus.emit('hall:switched', key),
@@ -113,6 +113,6 @@
     emit: (evt, data) => EventBus.emit(evt, data),
   };
 
-  console.log('[Cinema] 成员D模块已就绪：评分引擎 + 订单中心 + 事件总线');
-  console.log('[Cinema] 可用 API：window.Cinema  |  模块：ScoreEngine / ScorePanel / OrderStorage / OrderPanel / SeatData / EventBus');
+  console.log('[Cinema] 核心模块已就绪：评分引擎 + 订单中心 + 事件总线');
+  console.log('[Cinema] 可用 API：window.Cinema  |  模块：ScoreEngine / ScorePanel / PaymentPanel / SeatData / EventBus');
 })();
