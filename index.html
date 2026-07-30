@@ -371,9 +371,27 @@ button { cursor: pointer; }
 .members { max-height: 200px; overflow: auto; margin-top: 8px; }
 .member-row {
   display: grid;
-  grid-template-columns: 1fr 70px;
-  gap: 6px;
-  margin-bottom: 6px;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.member-label {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 18px;
+  align-self: end;
+  padding-bottom: 10px;
+  text-align: center;
+}
+.member-age-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.member-age-col label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: .5px;
 }
 
 /* 主操作按钮 */
@@ -1702,11 +1720,14 @@ body.colorblind {
     const memberList = $('#memberList');
     if (!memberList) return;
     // 默认年龄：前两位成年(25)，第三位少年(12)，其后老年(65)
-    const defaultAge = i => i < 2 ? 25 : i === 2 ? 12 : 65;
+    const defaultAge = () => 25;
     memberList.innerHTML = Array.from({ length: n }, (_, i) =>
       `<div class="member-row">
-        <input class="full-input member-name" type="text" placeholder="姓名" value="" aria-label="成员${i + 1}姓名">
-        <input class="full-input member-age" type="number" min="1" max="120" placeholder="年龄" value="${defaultAge(i)}" aria-label="成员${i + 1}年龄">
+        <span class="member-label">成员${i + 1}</span>
+        <div class="member-age-col">
+          <label>年龄</label>
+          <input class="full-input member-age" type="number" min="1" max="120" placeholder="年龄" value="${defaultAge(i)}" aria-label="成员${i + 1}年龄">
+        </div>
       </div>`
     ).join('');
   }
@@ -1787,9 +1808,17 @@ body.colorblind {
   }
 
   const applyFamily = $('#applyFamilyCount');
-  if (applyFamily) applyFamily.onclick = () => buildMemberList(Math.max(3, Math.min(6, +($('#familyCount')?.value) || 3)));
+  if (applyFamily) applyFamily.onclick = () => {
+    const val = +($('#familyCount')?.value) || 3;
+    if (val > 6) { A().toast('家庭票最多 6 人，已调整为上限'); }
+    buildMemberList(Math.max(3, Math.min(6, val)));
+  };
   const applyGroup = $('#applyGroupCount');
-  if (applyGroup) applyGroup.onclick = () => buildMemberList(Math.max(5, Math.min(20, +($('#groupCount')?.value) || 5)));
+  if (applyGroup) applyGroup.onclick = () => {
+    const val = +($('#groupCount')?.value) || 5;
+    if (val > 20) { A().toast('团体票最多 20 人，已调整为上限'); }
+    buildMemberList(Math.max(5, Math.min(20, val)));
+  };
 
   // 主按钮
   const recommendBtn = $('#recommendBtn');
