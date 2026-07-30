@@ -13,6 +13,44 @@ const PaymentPanel = (() => {
     return false;
   }
 
+  /** 返回指定影厅中已经被购买或预订的座位 */
+  function _findUnavailableSeats(hallKey, seats) {
+    const sold = new Set(A().soldMap()[hallKey] || []);
+    return seats.filter(id => sold.has(id));
+  }
+
+  /** 占用座位；用于预订或支付成功时写入最新座位状态 */
+  function _occupySeats(hallKey, seats) {
+    const app = A();
+    const sm = app.soldMap();
+    sm[hallKey] = [...new Set([...(sm[hallKey] || []), ...seats])];
+    app.write(app.STORE.sold, sm);
+  }
+
+  /** 释放已购票或已预订的座位 */
+  function _releaseSeats(hallKey, seats) {
+    const app = A();
+    const releasing = new Set(seats);
+    const sm = app.soldMap();
+    sm[hallKey] = (sm[hallKey] || []).filter(id => !releasing.has(id));
+    app.write(app.STORE.sold, sm);
+  }
+
+  /** 座位发生冲突后终止当前流程并刷新页面 */
+  function _handleSeatConflict(hallKey, seats) {
+    const app = A();
+    const label = typeof RecommendEngine !== 'undefined'
+      ? RecommendEngine.labelSeats(seats)
+      : seats.join('、');
+    app.pendingOrder = null;
+    const modal = $('#payModal');
+    if (modal) modal.classList.add('hidden');
+    app.toast(`${label} 已被其他用户购买或预订，请重新选座`);
+    CanvasRenderer.makeSeats();
+    renderOrders();
+    if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
+  }
+
   /** 购票 → 弹出支付界面 */
   function createOrder() {
     if (!_requireLogin() || !SeatData.selected().size) return;
@@ -32,17 +70,26 @@ const PaymentPanel = (() => {
     if (!_requireLogin() || !SeatData.selected().size) return;
     const app = A();
     const hall = HallConfig.get();
+    const seats = [...SeatData.selected()];
+    const conflicts = _findUnavailableSeats(hall.key, seats);
+    if (conflicts.length) {
+      _handleSeatConflict(hall.key, conflicts);
+      return;
+    }
+
     const order = {
       id: 'SC' + Date.now().toString().slice(-9),
       user: app.user().name,
       hall: hall.key,
       hallName: hall.name,
-      seats: [...SeatData.selected()],
+      seats,
       status: '已预订',
-      amount: SeatData.selected().size * window.CinemaConfig.pricePerSeat,
+      amount: seats.length * window.CinemaConfig.pricePerSeat,
       time: new Date().toLocaleString(),
     };
 
+    // 预订成功后立即占座，避免其他用户重复选择。
+    _occupySeats(hall.key, seats);
     const list = app.orders();
     list.unshift(order);
     app.write(app.STORE.orders, list);
@@ -50,6 +97,7 @@ const PaymentPanel = (() => {
     CanvasRenderer.makeSeats();
     renderOrders();
     AdminPanel.render();
+    if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
   /** 显示支付弹窗 */
@@ -113,6 +161,13 @@ const PaymentPanel = (() => {
     const o = app.pendingOrder;
     if (!o) return;
 
+    // 支付弹窗打开期间座位可能已被其他用户抢先占用，落单前必须再次校验。
+    const conflicts = _findUnavailableSeats(o.hall, o.seats);
+    if (conflicts.length) {
+      _handleSeatConflict(o.hall, conflicts);
+      return;
+    }
+
     const method = app.payMethod || 'wechat';
     const order = {
       id: 'SC' + Date.now().toString().slice(-9),
@@ -130,9 +185,7 @@ const PaymentPanel = (() => {
     list.unshift(order);
     app.write(app.STORE.orders, list);
 
-    const sm = app.soldMap();
-    sm[o.hall] = [...new Set([...(sm[o.hall] || []), ...o.seats])];
-    app.write(app.STORE.sold, sm);
+    _occupySeats(o.hall, o.seats);
 
     const modal = $('#payModal');
     if (modal) modal.classList.add('hidden');
@@ -162,9 +215,7 @@ const PaymentPanel = (() => {
     const order = list.find(x => x.id === id);
     if (!order) return;
 
-    const sm = app.soldMap();
-    sm[order.hall] = (sm[order.hall] || []).filter(x => !order.seats.includes(x));
-    app.write(app.STORE.sold, sm);
+    _releaseSeats(order.hall, order.seats);
     order.status = '已退票';
     app.write(app.STORE.orders, list);
 
@@ -183,11 +234,14 @@ const PaymentPanel = (() => {
     const order = list.find(x => x.id === id);
     if (!order || order.status !== '已预订') return;
 
+    _releaseSeats(order.hall, order.seats);
     order.status = '已取消';
     app.write(app.STORE.orders, list);
     app.toast('预订已取消');
+    CanvasRenderer.makeSeats();
     renderOrders();
     AdminPanel.render();
+    if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
   /** 渲染订单列表到 #orderList */

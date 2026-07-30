@@ -55,18 +55,19 @@ const HeatmapEngine = (() => {
   // 把 0~1 的热度值映射成颜色，走 蓝→青→黄→红 的连续渐变
   // 用 HSL 插值比直接算 RGB 平滑得多
   function heatColor(t) {
-    // t=0 蓝(240°) → t=0.5 黄(55°) → t=1 红(0°)
-    // 用两段线性插值，绕过紫色那段
+    // 实际最低热度通常也在 0.25 左右，因此给冷门区保留更宽的蓝色段。
+    // 0~0.40：深蓝→蓝青；0.40~0.70：蓝青→黄；0.70~1：黄→红。
+    const value = Math.max(0, Math.min(1, t));
     let hue;
-    if (t < 0.5) {
-      // 240° → 55°
-      hue = 240 - (240 - 55) * (t / 0.5);
+    if (value < 0.4) {
+      hue = 225 - 25 * (value / 0.4);
+    } else if (value < 0.7) {
+      hue = 200 - 145 * ((value - 0.4) / 0.3);
     } else {
-      // 55° → 0°
-      hue = 55 - 55 * ((t - 0.5) / 0.5);
+      hue = 55 - 55 * ((value - 0.7) / 0.3);
     }
-    const sat = 70 + t * 20;   // 越热越饱和
-    const light = 45 + (1 - t) * 15; // 冷色稍亮一点便于看清
+    const sat = 72 + value * 18;
+    const light = 46 + (1 - value) * 12;
     return `hsl(${hue.toFixed(0)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%)`;
   }
 
