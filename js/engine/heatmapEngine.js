@@ -55,20 +55,21 @@ const HeatmapEngine = (() => {
   // 把 0~1 的热度值映射成颜色，走 蓝→青→黄→红 的连续渐变
   // 用 HSL 插值比直接算 RGB 平滑得多
   function heatColor(t) {
-    // 实际最低热度通常也在 0.25 左右，因此给冷门区保留更宽的蓝色段。
-    // 0~0.40：深蓝→蓝青；0.40~0.70：蓝青→黄；0.70~1：黄→红。
+    // 按实际热度分布划分三档，保证工作日和周末都能清楚看到图例中的颜色。
+    // <0.45：冷门蓝；0.45~0.68：一般黄；>=0.68：热门红。
     const value = Math.max(0, Math.min(1, t));
-    let hue;
-    if (value < 0.4) {
-      hue = 225 - 25 * (value / 0.4);
-    } else if (value < 0.7) {
-      hue = 200 - 145 * ((value - 0.4) / 0.3);
-    } else {
-      hue = 55 - 55 * ((value - 0.7) / 0.3);
+    if (value < 0.45) {
+      const light = 46 + (0.45 - value) * 18;
+      return `hsl(220, 82%, ${light.toFixed(0)}%)`;
     }
-    const sat = 72 + value * 18;
-    const light = 46 + (1 - value) * 12;
-    return `hsl(${hue.toFixed(0)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%)`;
+    if (value < 0.68) {
+      const light = 54 + (value - 0.45) * 20;
+      return `hsl(48, 92%, ${light.toFixed(0)}%)`;
+    }
+    const hot = Math.min(1, (value - 0.68) / 0.17);
+    const hue = 12 - hot * 12;
+    const light = 54 - hot * 8;
+    return `hsl(${hue.toFixed(0)}, 88%, ${light.toFixed(0)}%)`;
   }
 
   // 取当前影厅+日期的热度数据
