@@ -50,7 +50,11 @@ const RecommendEngine = (() => {
 
     const hall = HallConfig.get();
     const H = hall;
-    if (count > H.cols * H.rows) { app.toast('当前放映厅无足够座位'); return; }
+    if (count > H.cols * H.rows) {
+      _showNoResult('当前放映厅的座位总数不足，请减少人数或更换影厅。');
+      app.toast('暂无合适座位');
+      return;
+    }
 
     const seats = SeatData.all();
     const hasTeen = ages.some(a => a === 'teen');
@@ -75,7 +79,11 @@ const RecommendEngine = (() => {
     };
 
     const allAvailable = seats.filter(s => !s.sold);
-    if (allAvailable.length < count) { app.toast('当前放映厅剩余空位不足'); return; }
+    if (allAvailable.length < count) {
+      _showNoResult(`当前放映厅只剩 ${allAvailable.length} 个未售座位，无法安排 ${count} 人。`);
+      app.toast('暂无合适座位');
+      return;
+    }
 
     let candidates = [];
 
@@ -132,6 +140,24 @@ const RecommendEngine = (() => {
 
     const best = app._topCandidates[0];
     app.toast(best.type === 'same-row' ? '智能推荐完成' : best.type === 'multi-row' ? '已推荐前后排组合方案' : '暂无连续座位，已就近推荐');
+  }
+
+  // 推荐失败时统一清除上一次结果，避免旧座位继续显示为本次推荐。
+  function _showNoResult(reason) {
+    const app = A();
+    app._topCandidates = [];
+    SeatData.setRecommended([]);
+    _renderOptions([]);
+
+    const titleEl = $('#recommendTitle');
+    const reasonEl = $('#recommendReason');
+    if (titleEl) titleEl.textContent = '暂无合适座位';
+    if (reasonEl) reasonEl.textContent = reason || '当前放映厅没有满足条件的未售座位。';
+
+    const step2 = $('#step2');
+    if (step2) step2.classList.remove('done');
+    EventBus.emit('seats:changed');
+    EventBus.emit('canvas:redraw');
   }
 
   function _renderOptions(candidates) {
