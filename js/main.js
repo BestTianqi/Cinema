@@ -5,8 +5,7 @@
    3. 向外暴露全局 API 供 inline 脚本调用
 
    与 index.html 内联脚本的衔接：
-   内联脚本中的 calcScore()、updateOrder()、createOrder() 等函数
-   可逐步替换为本文件暴露的 API。
+   评分统一交由 ScoreEngine / ScorePanel，内联脚本只保留页面交互绑定。
 */
 
 (() => {
@@ -25,9 +24,7 @@
   // ==================== 评分联动 ====================
   /** 当座位选择变化时重新评分 */
   function onSeatsChanged() {
-    ScorePanel.refresh(5);
-
-    // 同步 DOM（与内联脚本兼容）
+    // 评分由 ScorePanel 自身的 seats:changed 监听器刷新；这里只同步订单步骤状态。
     const count = SeatData.selectedCount();
     const buyBtn = document.getElementById('buyBtn');
     const reserveBtn = document.getElementById('reserveBtn');

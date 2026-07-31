@@ -1742,40 +1742,6 @@ body.colorblind {
   const $  = A().$;
   const $$ = A().$$;
 
-  /* ==================== 体验评分 ==================== */
-
-  function calcScore() {
-    const selected = SeatData.selected();
-    const seats = SeatData.all();
-    const H = HallConfig.get();
-
-    if (!selected.size) {
-      $('#scoreValue').textContent = '--';
-      $('#scoreRing').style.setProperty('--pct', '0%');
-      $('#scoreDetail').textContent = '选择座位后，将从视角、距离和周围空位三个维度计算体验评分。';
-      return;
-    }
-
-    const ss = seats.filter(s => selected.has(s.id));
-    const view  = Math.round(ss.reduce((a, s) => a + Math.max(30, 100 - Geometry.viewingAngleDeg(s.col, s.row, H.cols) * 2.0), 0) / ss.length);
-    const dist  = Math.round(ss.reduce((a, s) => a + Geometry.distanceScore(s.row, H.rows), 0) / ss.length);
-    const space = Math.round(ss.reduce((a, s) => {
-      const k = seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length;
-      return a + Math.max(30, 100 - k * 9);
-    }, 0) / ss.length);
-
-    const w = window.CinemaConfig.scoreWeights;
-    const total = Math.round(view * w.viewingAngle + dist * w.distance + space * w.vacancy);
-    const grade = total >= 80 ? '极佳' : total >= 60 ? '优秀' : '一般';
-
-    $('#scoreValue').textContent = total;
-    $('#scoreRing').style.setProperty('--pct', total + '%');
-    $('#scoreDetail').innerHTML =
-      `<b style="color:var(--cyan)">${grade}</b><br>
-       视角 ${view} · 距离 ${dist} · 空位 ${space}`;
-  }
-  window.calcScore = calcScore;
-
   /* ==================== 订单逻辑 ==================== */
 
   function updateOrder() {
@@ -1790,7 +1756,6 @@ body.colorblind {
     if (reserveBtn) reserveBtn.disabled = count === 0;
     const step3 = $('#step3');
     if (step3) step3.classList.toggle('done', count > 0);
-    calcScore();
   }
   window.updateOrder = updateOrder;
 
