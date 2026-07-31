@@ -9,11 +9,11 @@ const ScorePanel = (() => {
   function _el(id) { return document.getElementById(id); }
 
   /** 核心：计算并刷新评分面板 */
-  function refresh(userRating = 5) {
+  function refresh() {
     const selected = SeatData.selected();
     const seats = SeatData.all();
     const hall = HallConfig.get();
-    const result = ScoreEngine.scoreSelection([...selected], seats, hall.rows, hall.cols, userRating);
+    const result = ScoreEngine.scoreSelection([...selected], seats, hall.rows, hall.cols);
     _currentScore = result;
     _render(result);
   }
@@ -50,7 +50,7 @@ const ScorePanel = (() => {
   function get() { return _currentScore; }
 
   // 监听座位变化
-  EventBus.on('seats:changed', () => refresh(5));
+  EventBus.on('seats:changed', () => refresh());
 
   return { refresh, get };
 })();

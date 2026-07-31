@@ -75,7 +75,7 @@ const RecommendEngine = (() => {
       const aislePenalty = sections.size > 1 ? 3 : 0;
       const avgRow = seatList.reduce((a, s) => a + s.row, 0) / seatList.length;
       const coupleBonus = (ticket === 'couple' || ticket === 'family') ? Math.round(Math.sqrt(Math.max(0, avgRow - H.rows * 0.5)) * 7) : 0;
-      return Math.round(baseAvg - agePenalty - aislePenalty + coupleBonus);
+      return +(baseAvg - agePenalty - aislePenalty + coupleBonus).toFixed(1);
     };
 
     const allAvailable = seats.filter(s => !s.sold);
@@ -93,7 +93,7 @@ const RecommendEngine = (() => {
         const group = [];
         for (let c = st; c < st + count; c++) group.push(seats.find(s => s.row === r && s.col === c));
         if (group.every(s => s && !s.sold)) {
-          candidates.push({ group, score: _score(group) + 15, type: 'same-row' });
+          candidates.push({ group, score: _score(group) + 50, type: 'same-row' });
         }
       }
     }
@@ -177,7 +177,7 @@ const RecommendEngine = (() => {
       if (i < candidates.length) {
         card.classList.remove('hidden');
         $(`#optSeats${i + 1}`).textContent = labelSeats(candidates[i].group.map(s => s.id));
-        $(`#optDesc${i + 1}`).textContent = `${typeLabels[candidates[i].type] || ''} · ${candidates[i].score}分`;
+        $(`#optDesc${i + 1}`).textContent = `${typeLabels[candidates[i].type] || ''} · ${candidates[i].score.toFixed(1)}分`;
       } else {
         card.classList.add('hidden');
       }

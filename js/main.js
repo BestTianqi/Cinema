@@ -90,8 +90,7 @@
 
     // 评分
     getScore: () => ScorePanel.get(),
-    refreshScore: () => ScorePanel.refresh(5),
-    explain: (result) => ScoreEngine.explain(result),
+    refreshScore: () => ScorePanel.refresh(),
 
     // 订单（统一使用最新版 PaymentPanel）
     reserveOrder: () => PaymentPanel.reserveOrder(),
