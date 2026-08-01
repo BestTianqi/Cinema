@@ -39,8 +39,9 @@ const RecommendEngine = (() => {
 
     const members = rows.map((r, i) => {
       const ageInput = r.querySelector('.member-age');
+      const nameInput = r.querySelector('.member-name');
       return {
-        name: `成员${i + 1}`,
+        name: nameInput?.value?.trim() || `成员${i + 1}`,
         age: Number(ageInput?.value) || 0,
         category: classifyAge(ageInput?.value),
       };

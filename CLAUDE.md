@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Key Modules (from README)
 
-1. **Smart Recommendation** — recommends seats from per-member **name + numeric age** input. Ages are classified by the assignment's thresholds (teen `<15`, adult `15–59`, senior `≥60`). Hard rules: teens never in the front 3 rows, seniors never in the back 3 rows, adults unrestricted. Ticket-type strategy: couple→middle-area consecutive pair, family→mid/back consecutive, group→**must be same row consecutive** (no fallback). Top-3 candidates with per-rule reasoning text.
+1. **Smart Recommendation** — recommends seats from per-member **name + numeric age** input. Ages are classified by the assignment's thresholds (teen `<15`, adult `15–59`, senior `≥60`). Age rules are enforced by scoring penalty rather than hard exclusion: teens/seniors cost −30 per seat in the rows they should avoid (front 3 / back 3), so violating seats virtually never win, yet a fallback still exists when only those rows remain. Three-stage search: same-row consecutive (+15) → adjacent rows (+8 overlapping / +3 adjacent) → greedy fallback. Ticket-type bonus: couple/family get a mid-back row bonus (diminishing). Top-3 candidates with reasoning text. Members input name + numeric age in the form (`.member-name` / `.member-age`).
 2. **Manual Selection** — click to select, Ctrl+click for multi-select, drag-select (bonus)
 3. **Heatmap** — Canvas-drawn heat distribution overlay (red=hot, yellow=normal, green=cold)
 4. **Experience Scoring** — rates seats on viewing angle, screen distance, surrounding vacancy

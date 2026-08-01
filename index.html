@@ -371,7 +371,7 @@ button { cursor: pointer; }
 .members { max-height: 200px; overflow: auto; margin-top: 8px; }
 .member-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 44px 1fr 1fr;
   gap: 8px;
   margin-bottom: 8px;
 }
@@ -383,11 +383,13 @@ button { cursor: pointer; }
   padding-bottom: 10px;
   text-align: center;
 }
+.member-name-col,
 .member-age-col {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+.member-name-col label,
 .member-age-col label {
   font-size: 11px;
   color: var(--muted);
@@ -1720,10 +1722,14 @@ body.colorblind {
     const memberList = $('#memberList');
     if (!memberList) return;
     // 默认年龄：前两位成年(25)，第三位少年(12)，其后老年(65)
-    const defaultAge = () => 25;
+    const defaultAge = (i) => (i === 2 ? 12 : i >= 3 ? 65 : 25);
     memberList.innerHTML = Array.from({ length: n }, (_, i) =>
       `<div class="member-row">
         <span class="member-label">成员${i + 1}</span>
+        <div class="member-name-col">
+          <label>姓名</label>
+          <input class="full-input member-name" type="text" maxlength="12" placeholder="姓名" aria-label="成员${i + 1}姓名">
+        </div>
         <div class="member-age-col">
           <label>年龄</label>
           <input class="full-input member-age" type="number" min="1" max="120" placeholder="年龄" value="${defaultAge(i)}" aria-label="成员${i + 1}年龄">
