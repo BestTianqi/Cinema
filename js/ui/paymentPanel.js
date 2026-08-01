@@ -286,6 +286,6 @@ const PaymentPanel = (() => {
     AdminPanel.render();
   }
 
-  return { createOrder, reserveOrder, showPayModal, selectPayMethod, renderQrCode, confirmPayment, cancelPayment, refundOrder, cancelReservation, renderOrders };
+  return { createOrder, reserveOrder, selectPayMethod, confirmPayment, cancelPayment, refundOrder, cancelReservation, renderOrders };
 })();
 window.PaymentPanel = PaymentPanel;

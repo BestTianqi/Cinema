@@ -140,6 +140,6 @@ const HeatmapEngine = (() => {
     );
   }
 
-  return { draw, buildWeek, seatHeat, heatColor };
+  return { draw, buildWeek };
 })();
 window.HeatmapEngine = HeatmapEngine;

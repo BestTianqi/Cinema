@@ -42,8 +42,6 @@ const ScorePanel = (() => {
     if (value) value.textContent = total;
     if (ring) ring.style.setProperty('--pct', total + '%');
     if (detail) detail.innerHTML = labelHtml;
-
-    EventBus.emit('score:updated', result);
   }
 
   /** 获取当前结果供外部查询 */

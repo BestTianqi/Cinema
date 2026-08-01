@@ -30,9 +30,6 @@ window.CinemaConfig = {
     good:      60,  // ≥ 60 → 优秀，其余为一般
   },
 
-  // 最佳观影排比例（总排数 × ratio = 最佳排）
-  optimalRowRatio: 0.5,
-
   // LocalStorage key
   storageKeys: {
     users:   'sc_users',

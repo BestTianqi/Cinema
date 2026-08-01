@@ -191,6 +191,6 @@ const RealtimeSync = (() => {
     window.addEventListener('beforeunload', () => _send('bye', {}));
   }
 
-  return { init, broadcastLock, broadcastSold, peerLockedSeats, onlineCount };
+  return { init, broadcastLock, broadcastSold, peerLockedSeats };
 })();
 window.RealtimeSync = RealtimeSync;

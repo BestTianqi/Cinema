@@ -203,7 +203,7 @@ const AuthPanel = (() => {
       if (adminNav) adminNav.classList.add('hidden');
     }
 
-    if (typeof EventBus !== 'undefined') EventBus.emit('auth:changed');
+    if (typeof AdminPanel !== 'undefined') AdminPanel.render();
   }
 
   /* ========== 工具 ========== */

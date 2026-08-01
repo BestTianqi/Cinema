@@ -229,6 +229,6 @@ const RecommendEngine = (() => {
   function switchTo(idx) { _switchOption(idx); }
   function topCandidates() { return A()._topCandidates; }
 
-  return { recommend, labelSeats, switchTo, topCandidates, classifyAge };
+  return { recommend, labelSeats, switchTo, topCandidates };
 })();
 window.RecommendEngine = RecommendEngine;

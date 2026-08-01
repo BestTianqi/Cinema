@@ -11,11 +11,5 @@ const HallConfig = (() => {
     if (window.CinemaConfig.halls[key]) _current = key;
   }
 
-  function list() {
-    return Object.entries(window.CinemaConfig.halls).map(([k, v]) => ({
-      key: k, ...v,
-    }));
-  }
-
-  return { get, switchHall, list };
+  return { get, switchHall };
 })();
