@@ -46,7 +46,12 @@ const CanvasRenderer = (() => {
 
     // 触发更新
     if (typeof updateOrder === 'function') updateOrder();
-    if (typeof EventBus !== 'undefined') EventBus.emit('seats:changed');
+    if (typeof EventBus !== 'undefined') {
+      EventBus.emit('seats:changed');
+      // 订单取消、退票或冲突处理会重建 SeatData；必须同步重绘 Canvas，
+      // 否则数据虽已释放，画布仍会残留取消前的推荐色或已售色。
+      EventBus.emit('canvas:redraw');
+    }
   }
 
   // 算每个座位在 Canvas 上的坐标。

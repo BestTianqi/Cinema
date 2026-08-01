@@ -16,9 +16,10 @@ const ScoreEngine = (() => {
    * @returns {{ total: number, grade: string, details: {} }}
    */
   function scoreSeat(seat, totalRows, totalCols, allSeats) {
-    // 1. 视角评分：角度越小越高分
+    // 1. 视角评分：以该厅最大可能角度为基准做归一化
     const angle = Geometry.viewingAngleDeg(seat.col, seat.row, totalCols);
-    const angleScore = Math.max(30, 100 - angle * 2.0); // 0°→100, 35°→30
+    const maxAngle = Math.atan2((totalCols - 1) / 2, 1 + 2) * (180 / Math.PI);
+    const angleScore = Math.max(30, Math.round(100 - (angle / Math.max(maxAngle, 1)) * 70));
 
     // 2. 距离评分：中间排最优，两端递减
     const distScore = Geometry.distanceScore(seat.row, totalRows);
@@ -55,25 +56,20 @@ const ScoreEngine = (() => {
   }
 
   /**
-   * 批量评分：对已选座位中的每个座位单独评分，然后取平均值
+   * 批量评分
    */
-  function scoreSelection(selectedIds, allSeats, totalRows, totalCols, userRating = 5) {
+  function scoreSelection(selectedIds, allSeats, totalRows, totalCols) {
     if (selectedIds.length === 0) return null;
 
     const seats = allSeats.filter(s => selectedIds.includes(s.id));
     const scores = seats.map(s => scoreSeat(s, totalRows, totalCols, allSeats));
 
-    // 各维度取平均值
     const avg = (field) => scores.reduce((a, s) => a + s.details[field], 0) / scores.length;
-    const sysScore = Math.round(
+    const total = Math.round(
       avg('angleScore')    * W().viewingAngle +
       avg('distanceScore') * W().distance +
       avg('vacancyScore')  * W().vacancy
     );
-
-    // 系统评分 80% + 用户自评 20%
-    const userScore = userRating * 20; // 1星=20, 5星=100
-    const total = Math.round(sysScore * 0.8 + userScore * 0.2);
 
     const grades = cfg().scoreGrades;
     const grade = total >= grades.excellent ? '极佳' : total >= grades.good ? '优秀' : '一般';
@@ -84,29 +80,12 @@ const ScoreEngine = (() => {
       ...scores[i],
     }));
 
-    return {
-      total,
-      grade,
-      perSeat,
-      aggregate: {
-        angleScore: Math.round(avg('angleScore')),
-        distanceScore: Math.round(avg('distanceScore')),
-        vacancyScore: Math.round(avg('vacancyScore')),
-      },
-    };
+    return { total, grade, perSeat, aggregate: {
+      angleScore: Math.round(avg('angleScore')),
+      distanceScore: Math.round(avg('distanceScore')),
+      vacancyScore: Math.round(avg('vacancyScore')),
+    }};
   }
 
-  function explain(result) {
-    if (!result) return { title: '--', body: '选择座位后，将从视角、距离和周围空位三个维度计算体验评分。' };
-    const { grade, total, aggregate: a } = result;
-    const titles = { '极佳': '黄金观影位', '优秀': '不错的观影位', '一般': '建议调整座位' };
-    const body = `综合评分 ${total} 分 · ${grade}。`
-      + `视角 ${a.angleScore}分 · 距离 ${a.distanceScore}分 · 空位 ${a.vacancyScore}分。`
-      + (grade === '极佳' ? '这是影厅最佳观影区域之一！' :
-         grade === '优秀' ? '观影体验良好，适合大多数观众。' :
-         '可以试试更靠近中间的座位来获得更好的体验。');
-    return { title: titles[grade], body };
-  }
-
-  return { scoreSeat, scoreSelection, explain };
+  return { scoreSeat, scoreSelection };
 })();

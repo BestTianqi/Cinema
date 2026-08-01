@@ -24,13 +24,18 @@ const Geometry = (() => {
 
   /**
    * 观影距离评分（0-100）
-   * 以中间排为最佳观看距离，偏离越远分越低
+   * 中间排=100，第一排=55，最后一排=70（前排惩罚重于后排）
    */
   function distanceScore(row, totalRows) {
+    if (totalRows <= 1) return 100;
     const optimal = Math.round(totalRows * 0.5);
-    const maxOff = totalRows * 0.5;
-    const t = Math.min(Math.abs(row - optimal) / maxOff, 1);
-    return 100 - t * 45;  // 最佳 100 → 最偏 55
+    if (row <= optimal) {
+      const t = (optimal - row) / (optimal - 1);
+      return Math.round(100 - t * 45);
+    } else {
+      const t = (row - optimal) / (totalRows - optimal);
+      return Math.round(100 - t * 30);
+    }
   }
 
   /**

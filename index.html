@@ -48,6 +48,7 @@ body {
   color: var(--text);
   font-family: Inter, "Microsoft YaHei", Arial, sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 button, input, select { font: inherit; }
@@ -1034,6 +1035,11 @@ body.colorblind {
 
 /* ---- 响应式：平板 ≤1050px ---- */
 @media (max-width: 1050px) {
+  .layout,
+  .layout > *,
+  .side,
+  .wide,
+  .heat-layout > * { min-width: 0; }
   .layout { grid-template-columns: 1fr; }
   .side {
     display: grid;
@@ -1045,25 +1051,107 @@ body.colorblind {
 
 /* ---- 响应式：手机 ≤700px ---- */
 @media (max-width: 700px) {
-  .app { padding: 12px; }
-  .topbar { flex-wrap: wrap; }
-  .nav { order: 3; width: 100%; overflow: auto; }
-  .nav button { white-space: nowrap; }
+  .app { width: 100%; padding: 10px; overflow: hidden; }
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 4px 0 12px;
+  }
+  .brand { min-width: 0; font-size: 18px; gap: 9px; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 10px; }
+  .brand small { display: none; }
+  .account { gap: 7px; min-width: 0; }
+  .account > div:nth-child(2) { display: none; }
+  .account .ghost { padding: 8px 9px; }
+  .avatar { width: 34px; height: 34px; }
+  .nav {
+    grid-column: 1 / -1;
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar,
+  .hall-tabs::-webkit-scrollbar,
+  .week::-webkit-scrollbar,
+  .admin-table::-webkit-scrollbar { display: none; }
+  .nav button { flex: 1 0 auto; white-space: nowrap; padding: 9px 11px; }
   .layout { display: block; }
-  .cinema { padding: 12px; min-height: auto; }
+  .card { border-radius: 14px; }
+  .cinema { padding: 11px; min-height: auto; }
   .cinema-head { display: block; }
-  .hall-tabs { margin-top: 12px; width: max-content; }
-  .canvas-wrap { height: 430px; }
+  .cinema h1 { font-size: 22px; }
+  .hall-tabs {
+    margin-top: 12px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .hall-tabs button { flex: 0 0 auto; white-space: nowrap; }
+  .screen { width: 88%; margin-top: 17px; height: 42px; }
+  .canvas-wrap { height: 370px; }
+  .canvas-tip { display: none; }
+  .legend { justify-content: flex-start; gap: 10px 14px; padding: 12px 3px 0; }
+  .tools { display: grid; grid-template-columns: 1fr 1fr; }
+  .tools button { min-width: 0; }
   .side { display: block; }
   .side > .card { margin-top: 12px; }
+  .flow, .mini { padding: 14px; }
   .choices { grid-template-columns: 1fr 1fr; }
+  .choice { min-width: 0; padding: 10px 8px; }
+  .member-row { grid-template-columns: minmax(0, 1fr) 66px; }
+  .order-actions { gap: 8px; }
   .preset-grid { grid-template-columns: repeat(2, 1fr); }
+  .preset-card { min-width: 0; padding: 14px 9px; }
+  .preset-btn { width: 100%; padding: 8px 6px; }
+  .preset-info { flex-direction: column; gap: 7px; }
   .grid3 { grid-template-columns: 1fr; }
   .heat-layout { grid-template-columns: 1fr; }
-  .heat-canvas { height: 430px; }
-  .order { grid-template-columns: 1fr 1fr; }
-  .order > *:first-child { grid-column: span 2; }
-  .wide { padding: 14px; }
+  .heat-canvas { height: 370px; }
+  .week { grid-template-columns: repeat(7, minmax(48px, 1fr)); overflow-x: auto; scrollbar-width: none; }
+  .order {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    padding: 12px;
+  }
+  .order > *:first-child { grid-column: 1 / -1; }
+  .order .pill { justify-self: start; }
+  .order button { justify-self: end; }
+  .wide { padding: 13px; overflow: hidden; }
+  .wide-head { align-items: flex-start; gap: 10px; }
+  .wide-head h1 { font-size: 22px; margin: 5px 0; }
+  .wide-head .ghost { flex: 0 0 auto; padding: 8px; }
+  .admin-table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: thin;
+  }
+  .admin-table th, .admin-table td { padding: 10px; }
+  .pay-modal .modal-card { width: calc(100% - 20px); padding: 18px 14px; }
+  .pay-methods { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .pay-method { padding: 12px 6px 10px; }
+  .access { right: 10px; bottom: 10px; }
+  .access-btn { min-width: 112px; height: 46px; font-size: 14px; }
+  .access-panel { width: min(330px, calc(100vw - 20px)); bottom: 52px; padding: 14px; }
+  .modal-card { max-height: calc(100vh - 20px); overflow-y: auto; padding: 20px 16px; }
+  .toast { width: max-content; max-width: calc(100vw - 20px); text-align: center; }
+}
+
+@media (max-width: 400px) {
+  .canvas-wrap, .heat-canvas { height: 340px; }
+  .choices { grid-template-columns: 1fr; }
+  .preset-grid { grid-template-columns: 1fr; }
+  .order-actions { grid-template-columns: 1fr; }
+  .legend { font-size: 11px; }
 }
 </style>
 </head>
@@ -1656,40 +1744,6 @@ body.colorblind {
   const $  = A().$;
   const $$ = A().$$;
 
-  /* ==================== 体验评分 ==================== */
-
-  function calcScore() {
-    const selected = SeatData.selected();
-    const seats = SeatData.all();
-    const H = HallConfig.get();
-
-    if (!selected.size) {
-      $('#scoreValue').textContent = '--';
-      $('#scoreRing').style.setProperty('--pct', '0%');
-      $('#scoreDetail').textContent = '选择座位后，将从视角、距离和周围空位三个维度计算体验评分。';
-      return;
-    }
-
-    const ss = seats.filter(s => selected.has(s.id));
-    const view  = Math.round(ss.reduce((a, s) => a + Math.max(30, 100 - Geometry.viewingAngleDeg(s.col, s.row, H.cols) * 2.0), 0) / ss.length);
-    const dist  = Math.round(ss.reduce((a, s) => a + Geometry.distanceScore(s.row, H.rows), 0) / ss.length);
-    const space = Math.round(ss.reduce((a, s) => {
-      const k = seats.filter(o => o.sold && Math.abs(o.row - s.row) <= 1 && Math.abs(o.col - s.col) <= 1).length;
-      return a + Math.max(30, 100 - k * 9);
-    }, 0) / ss.length);
-
-    const w = window.CinemaConfig.scoreWeights;
-    const total = Math.round(view * w.viewingAngle + dist * w.distance + space * w.vacancy);
-    const grade = total >= 80 ? '极佳' : total >= 60 ? '优秀' : '一般';
-
-    $('#scoreValue').textContent = total;
-    $('#scoreRing').style.setProperty('--pct', total + '%');
-    $('#scoreDetail').innerHTML =
-      `<b style="color:var(--cyan)">${grade}</b><br>
-       视角 ${view} · 距离 ${dist} · 空位 ${space}`;
-  }
-  window.calcScore = calcScore;
-
   /* ==================== 订单逻辑 ==================== */
 
   function updateOrder() {
@@ -1704,7 +1758,6 @@ body.colorblind {
     if (reserveBtn) reserveBtn.disabled = count === 0;
     const step3 = $('#step3');
     if (step3) step3.classList.toggle('done', count > 0);
-    calcScore();
   }
   window.updateOrder = updateOrder;
 
