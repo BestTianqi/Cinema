@@ -27,7 +27,7 @@ const PaymentPanel = (() => {
     app.write(app.STORE.sold, sm);
   }
 
-  /** 释放已购票或已预订的座位 */
+  /** 释放已支付或已预订的座位 */
   function _releaseSeats(hallKey, seats) {
     const app = A();
     const releasing = new Set(seats);
@@ -93,10 +93,18 @@ const PaymentPanel = (() => {
     const list = app.orders();
     list.unshift(order);
     app.write(app.STORE.orders, list);
-    app.toast('预订成功，可在订单中心取消预订');
-    CanvasRenderer.makeSeats();
-    renderOrders();
-    AdminPanel.render();
+
+    // 设置待支付订单，允许用户直接进入支付流程
+    app.pendingOrder = {
+      hall: hall.key,
+      hallName: hall.name,
+      seats,
+      amount: order.amount,
+      reserveIds: [order.id],
+    };
+
+    app.toast('预订成功，可立即支付或稍后在订单中心操作');
+    EventBus.emit('order:changed');
     if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
@@ -161,28 +169,42 @@ const PaymentPanel = (() => {
     const o = app.pendingOrder;
     if (!o) return;
 
-    // 支付弹窗打开期间座位可能已被其他用户抢先占用，落单前必须再次校验。
-    const conflicts = _findUnavailableSeats(o.hall, o.seats);
-    if (conflicts.length) {
-      _handleSeatConflict(o.hall, conflicts);
-      return;
+    // 预订转支付：座位已在预订时占用，无需重复校验
+    // 直接购票：支付弹窗打开期间座位可能被其他用户抢先占用，需要校验
+    if (!o.reserveIds || !o.reserveIds.length) {
+      const conflicts = _findUnavailableSeats(o.hall, o.seats);
+      if (conflicts.length) {
+        _handleSeatConflict(o.hall, conflicts);
+        return;
+      }
     }
 
     const method = app.payMethod || 'wechat';
-    const order = {
-      id: 'SC' + Date.now().toString().slice(-9),
-      user: app.user().name,
-      hall: o.hall,
-      hallName: o.hallName,
-      seats: o.seats,
-      status: '已购票',
-      payMethod: method,
-      amount: o.amount,
-      time: new Date().toLocaleString(),
-    };
-
     const list = app.orders();
-    list.unshift(order);
+
+    if (o.reserveIds && o.reserveIds.length) {
+      // 从预订转为支付：批量更新所有关联订单状态
+      for (const rid of o.reserveIds) {
+        const order = list.find(x => x.id === rid);
+        if (order) {
+          order.status = '已支付';
+          order.payMethod = method;
+        }
+      }
+    } else {
+      const order = {
+        id: 'SC' + Date.now().toString().slice(-9),
+        user: app.user().name,
+        hall: o.hall,
+        hallName: o.hallName,
+        seats: o.seats,
+        status: '已支付',
+        payMethod: method,
+        amount: o.amount,
+        time: new Date().toLocaleString(),
+      };
+      list.unshift(order);
+    }
     app.write(app.STORE.orders, list);
 
     _occupySeats(o.hall, o.seats);
@@ -192,11 +214,8 @@ const PaymentPanel = (() => {
     app.pendingOrder = null;
 
     const payNames = { wechat: '微信支付', alipay: '支付宝', paypal: 'PayPal', unionpay: '银联云闪付', applepay: 'Apple Pay', card: '银行卡' };
-    app.toast(`支付成功（${payNames[method] || method}）· 已购票`);
-    CanvasRenderer.makeSeats();
-    renderOrders();
-    AdminPanel.render();
-    // 通知其他标签页：有座位售出了（多人在线同步）
+    app.toast(`支付成功（${payNames[method] || method}）· 已支付`);
+    EventBus.emit('order:changed');
     if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
@@ -220,10 +239,7 @@ const PaymentPanel = (() => {
     app.write(app.STORE.orders, list);
 
     app.toast('已退票');
-    CanvasRenderer.makeSeats();
-    renderOrders();
-    AdminPanel.render();
-    // 退票后座位释放，同步给其他标签页
+    EventBus.emit('order:changed');
     if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
@@ -237,10 +253,9 @@ const PaymentPanel = (() => {
     _releaseSeats(order.hall, order.seats);
     order.status = '已取消';
     app.write(app.STORE.orders, list);
+    if (app.pendingOrder && app.pendingOrder.reserveIds && app.pendingOrder.reserveIds.includes(id)) app.pendingOrder = null;
     app.toast('预订已取消');
-    CanvasRenderer.makeSeats();
-    renderOrders();
-    AdminPanel.render();
+    EventBus.emit('order:changed');
     if (typeof RealtimeSync !== 'undefined') RealtimeSync.broadcastSold();
   }
 
@@ -256,19 +271,20 @@ const PaymentPanel = (() => {
       orderList.innerHTML = '<div class="sub">暂无订单，完成一次选座后订单会出现在这里。</div>';
     } else {
       orderList.innerHTML = list.map(o => {
-        const statusStyle = o.status === '已购票'
+        const isAdmin = u && u.role === 'admin';
+        const statusStyle = o.status === '已支付'
           ? 'background:#1a2e29;color:#66e4aa'
           : o.status === '已预订'
             ? 'background:#102a42;color:#76c7ff'
             : 'background:#2a1a1a;color:#ff9ea5';
-        const action = o.status === '已购票'
+        const action = o.status === '已支付'
           ? `<button data-order="${o.id}" data-action="refund">退票</button>`
           : o.status === '已预订'
             ? `<button data-order="${o.id}" data-action="cancel">取消预订</button>`
             : '<span></span>';
         return `
         <div class="order">
-          <div><b>${o.hallName}</b><div class="sub">${RecommendEngine.labelSeats(o.seats)}</div></div>
+          <div><b>${o.hallName}</b><div class="sub">${isAdmin ? `<span style="color:var(--cyan)">@${o.user}</span> ` : ''}${RecommendEngine.labelSeats(o.seats)}</div></div>
           <div>${o.time}</div>
           <div class="pill" style="${statusStyle}">${o.status}${o.payMethod ? ' · ' + ({wechat:'微信',alipay:'支付宝',paypal:'PayPal',unionpay:'云闪付',applepay:'Apple Pay',card:'银行卡'}[o.payMethod]||o.payMethod) : ''}</div>
           <div>¥${o.amount}</div>
@@ -286,6 +302,6 @@ const PaymentPanel = (() => {
     AdminPanel.render();
   }
 
-  return { createOrder, reserveOrder, selectPayMethod, confirmPayment, cancelPayment, refundOrder, cancelReservation, renderOrders };
+  return { createOrder, reserveOrder, showPayModal, selectPayMethod, confirmPayment, cancelPayment, refundOrder, cancelReservation, renderOrders };
 })();
 window.PaymentPanel = PaymentPanel;

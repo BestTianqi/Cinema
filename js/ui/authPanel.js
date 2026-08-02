@@ -215,6 +215,6 @@ const AuthPanel = (() => {
     });
   }
 
-  return { openAuth, syncAuth, submitAuth, sendCode, syncAccount };
+  return { openAuth, close: _close, syncAuth, submitAuth, sendCode, syncAccount };
 })();
 window.AuthPanel = AuthPanel;

@@ -379,7 +379,7 @@ button { cursor: pointer; }
 .member-label {
   color: var(--text);
   font-weight: 700;
-  font-size: 18px;
+  font-size: 14px;
   align-self: end;
   padding-bottom: 10px;
   text-align: center;
@@ -841,7 +841,21 @@ button { cursor: pointer; }
 .modal-card {
   width: min(430px, calc(100% - 32px));
   padding: 26px;
+  position: relative;
 }
+.modal-close {
+  position: absolute;
+  top: 12px; right: 14px;
+  width: 32px; height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.modal-close:hover { color: white; background: #1a2235; }
 .modal-card h2 { margin: 7px 0; }
 .modal-tabs { display: flex; gap: 5px; margin: 18px 0; }
 .modal-tabs button {
@@ -1382,6 +1396,9 @@ body.colorblind {
                 <small>合计</small> ¥<span id="totalPrice">0</span>
               </div>
             </div>
+            <div class="sub" style="margin-top:10px">
+              已预订 <b id="reservedSeatCount">0</b> 座 · 已支付 <b id="paidSeatCount">0</b> 座
+            </div>
             <div class="order-actions">
               <button class="primary reserve-btn" id="reserveBtn" disabled>预订座位</button>
               <button class="primary" id="buyBtn" disabled
@@ -1609,6 +1626,7 @@ body.colorblind {
      ================================================================ -->
 <div class="modal" id="authModal">
   <div class="card modal-card">
+    <button class="modal-close" id="authCloseBtn" aria-label="关闭">&times;</button>
     <div class="eyebrow" id="authEyebrow">WELCOME TO SMARTCINEMA</div>
     <h2 id="authTitle">登录后开始智能选座</h2>
     <div class="sub" id="authSubtitle">新用户注册即可获得会员资格</div>
@@ -1747,13 +1765,38 @@ body.colorblind {
   /* ==================== 订单逻辑 ==================== */
 
   function updateOrder() {
+    const app = A();
     const selected = SeatData.selected();
-    const count = selected.size;
-    const label = count ? RecommendEngine.labelSeats([...selected]) : '尚未选择座位';
+    const hasPending = app.pendingOrder && app.pendingOrder.reserveIds && app.pendingOrder.reserveIds.length;
+    const pendingSeats = hasPending ? app.pendingOrder.seats : [];
+    const count = selected.size || pendingSeats.length;
+    const label = count ? RecommendEngine.labelSeats(selected.size ? [...selected] : pendingSeats) : '尚未选择座位';
+
+    // 合计：当前用户所有已预订未支付订单的总金额
+    const user = app.user();
+    const userName = user ? user.name : '';
+    const userOrders = app.orders().filter(o => o.user === userName);
+    const reservedTotal = userOrders
+      .filter(o => o.status === '已预订')
+      .reduce((sum, o) => sum + o.amount, 0);
+    const reservedSeats = userOrders
+      .filter(o => o.status === '已预订')
+      .reduce((n, o) => n + o.seats.length, 0);
+    const paidSeats = userOrders
+      .filter(o => o.status === '已支付')
+      .reduce((n, o) => n + o.seats.length, 0);
+
     $('#selectedList').textContent = label;
-    $('#totalPrice').textContent = count * window.CinemaConfig.pricePerSeat;
+    $('#totalPrice').textContent = reservedTotal || (count * window.CinemaConfig.pricePerSeat);
+    const rsc = $('#reservedSeatCount');
+    if (rsc) rsc.textContent = reservedSeats;
+    const psc = $('#paidSeatCount');
+    if (psc) psc.textContent = paidSeats;
     const buyBtn = $('#buyBtn');
-    if (buyBtn) buyBtn.disabled = count === 0;
+    if (buyBtn) {
+      buyBtn.disabled = count === 0 && !reservedTotal;
+      buyBtn.textContent = hasPending || reservedTotal ? '立即支付' : '确认购票';
+    }
     const reserveBtn = $('#reserveBtn');
     if (reserveBtn) reserveBtn.disabled = count === 0;
     const step3 = $('#step3');
@@ -1905,7 +1948,28 @@ body.colorblind {
   const opt2 = $('#opt2'); if (opt2) opt2.onclick = () => RecommendEngine.switchTo(1);
   const opt3 = $('#opt3'); if (opt3) opt3.onclick = () => RecommendEngine.switchTo(2);
   const buyBtn = $('#buyBtn');
-  if (buyBtn) buyBtn.onclick = () => PaymentPanel.createOrder();
+  if (buyBtn) buyBtn.onclick = () => {
+    const app = A();
+    // 合并当前用户所有未支付预订
+    const user = app.user();
+    const reservations = app.orders().filter(o => o.status === '已预订' && o.user === (user ? user.name : ''));
+    if (reservations.length) {
+      const allSeats = reservations.flatMap(r => r.seats);
+      const totalAmount = reservations.reduce((sum, r) => sum + r.amount, 0);
+      app.pendingOrder = {
+        hall: reservations[0].hall,
+        hallName: reservations[0].hallName,
+        seats: allSeats,
+        amount: totalAmount,
+        reserveIds: reservations.map(r => r.id),
+      };
+    }
+    if (app.pendingOrder && app.pendingOrder.reserveIds && app.pendingOrder.reserveIds.length) {
+      PaymentPanel.showPayModal();
+    } else {
+      PaymentPanel.createOrder();
+    }
+  };
   const reserveBtn = $('#reserveBtn');
   if (reserveBtn) reserveBtn.onclick = () => PaymentPanel.reserveOrder();
 
@@ -1953,6 +2017,10 @@ body.colorblind {
   if (loginTab) loginTab.onclick = () => { A().authMode = 'login'; AuthPanel.syncAuth(); };
   const registerTab = $('#registerTab');
   if (registerTab) registerTab.onclick = () => { A().authMode = 'register'; AuthPanel.syncAuth(); };
+  const authCloseBtn = $('#authCloseBtn');
+  if (authCloseBtn) authCloseBtn.onclick = () => AuthPanel.close();
+  const authModal = $('#authModal');
+  if (authModal) authModal.addEventListener('click', (e) => { if (e.target === authModal) AuthPanel.close(); });
   const authSubmit = $('#authSubmit');
   if (authSubmit) authSubmit.onclick = () => AuthPanel.submitAuth();
   const authPass = $('#authPass');
@@ -2005,6 +2073,7 @@ body.colorblind {
     EventBus.on('order:changed', () => {
       CanvasRenderer.makeSeats();
       PaymentPanel.renderOrders();
+      updateOrder();
     });
   }
 
